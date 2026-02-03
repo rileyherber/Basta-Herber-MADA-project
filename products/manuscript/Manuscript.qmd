@@ -1,6 +1,6 @@
 ---
-title: "Example Manuscript Template for a Data Analysis Project"
-author: ""
+title: "How Medications and Medication Regimens relate to Patient Mortality"
+author: "Rebecca Basta and Riley Herber"
 format:
   docx:
     toc: false
@@ -56,15 +56,23 @@ _It is recommended to use a structured abstract with Background/Methods/Results/
 
 
 # Introduction 
+This information is important because it can help healthcare providers better understand the effects of commonly prescribed medications on patient survival. Identifying medications that are
+associated with improved or worsened outcomes may guide clinical decision-making, optimize treatment strategies, and ultimately improve patient care and safety.
 
 ## General Background Information
 _Provide enough background on your topic that others can understand the why and how of your analysis_ 
 
 ## Description of data and data source
-_Describe what the data is, what it contains, where it is from, etc. Eventually this might be part of a methods section._
+We are interested in using the MIMIC-IV dataset to explore the relationships between patient medication use, health outcomes, and mortality at Beth Israel Deaconess Medical Center in Boston, MA.
+MIMIC-IV contains data for over 65,000 patients admitted to an ICU and over 200,000 patients admitted to the emergency department. Variables within this database include, but are not limited to,
+hospital admissions, intra-hospital transfers, laboratory measurements, microbiology cultures, provider orders, medication administration records, medication prescriptions, hospital billing
+information, and mortality outcomes.
 
 ## Questions/Hypotheses to be addressed
-_State the research questions you plan to answer with this analysis._
+Our primary objective is to examine how different medications and medication regimens relate to patient mortality. This may include analyzing whether certain medications or combinations of
+medications are associated with higher or lower mortality rates. To analyze the relationship between medication, use and mortality in the MIMIC-IV dataset, we would first clean and organize
+medication and outcome data. We would then explore general patterns by comparing mortality rates across patients who received different medications or groups of medications. Simple summaries and
+visualizations could be used to identify trends or potential associations. This exploratory analysis would help generate initial insights and guide more detailed analyses later on.
 
 To cite other work (important everywhere, but likely happens first in introduction), make sure your references are in the BibTeX file specified in the YAML header above and have the right BibTeX key. Then you can include like this:
 
