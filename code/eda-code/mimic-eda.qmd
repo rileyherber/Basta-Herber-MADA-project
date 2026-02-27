@@ -6,10 +6,15 @@ output: html_document
 
 Exploratory Data Analysis
 
+```{r}
+library(tidyverse)
+library(gt)
+```
 ## Outcome: 30-Day Mortality
 
 ```{r}
 #| fig-cap: "Distribution of 30-day mortality in the analytic cohort"
+
 analysis_df <- read_csv("data/processed-data/analysis_dataset.csv", show_col_types = FALSE)
 analysis_df |>
   mutate(Outcome = if_else(mortality_30day == 1, "Died (≤30 days)", "Survived")) |>
@@ -24,6 +29,9 @@ analysis_df |>
   labs(title = "30-Day Mortality Distribution",
        x = NULL, y = "Number of Admissions") +
   theme(plot.title = element_text(face = "bold"))
+
+ggsave("results/figures/day-30-mortality.png", 
+       width = 8, height = 5, dpi = 300)
 ```
 
 ## Demographics
@@ -40,6 +48,9 @@ analysis_df |>
   scale_fill_manual(values = c("Died" = "#d62728", "Survived" = "#2ca02c")) +
   labs(title = "Age Distribution by 30-Day Mortality",
        x = "Age at Admission (years)", y = "Count", fill = "Outcome")
+
+ggsave("results/figures/age-distribution-mortality.png", 
+       width = 8, height = 5, dpi = 300)
 ```
 
 ### Mortality Rate by Age Group
@@ -60,6 +71,8 @@ analysis_df |>
   scale_y_continuous(labels = scales::percent_format()) +
   labs(title = "30-Day Mortality Rate by Age Group",
        x = "Age Group", y = "Mortality Rate")
+ggsave("results/figures/mortality_by_age.png", 
+       width = 8, height = 5, dpi = 300)
 ```
 
 ### Mortality Rate by Gender
@@ -78,6 +91,8 @@ analysis_df |>
   fmt_percent(columns = mort_rate, decimals = 1) |>
   cols_label(gender = "Gender", n = "Admissions",
              deaths = "Deaths", mort_rate = "30-Day Mortality Rate")
+ggsave("results/tables/mortality_by_gender.png", 
+       width = 8, height = 5, dpi = 300)
 ```
 
 ## Medication Class Usage
@@ -149,6 +164,9 @@ analysis_df |>
   coord_flip() +
   labs(title = "Medication Class Usage Among Admitted Patients",
        x = NULL, y = "Proportion of Admissions")
+
+ggsave("results/figures/perscriptoin-frequency.png", 
+       width = 8, height = 5, dpi = 300)
 ```
 
 ## 4.4 Medication Class vs. 30-Day Mortality
@@ -179,6 +197,9 @@ med_mortality |>
        subtitle = "Patients who received vs. did not receive each class",
        x = NULL, y = "30-Day Mortality Rate", fill = NULL) +
   theme(legend.position = "top")
+
+ggsave("results/figures/unadjusted-perscriptoin-frequency.png", 
+       width = 8, height = 5, dpi = 300)
 ```
 
 ### Summary Table
@@ -198,6 +219,9 @@ med_mortality |>
     mort_rate = "Mortality Rate"
   ) |>
   tab_header(title = "30-Day Mortality by Medication Class (Unadjusted)")
+
+ggsave("results/tables/medication-mortality-summary.png", 
+       width = 8, height = 5, dpi = 300)
 ```
 
 ## Number of Medication Classes per Admission
@@ -222,4 +246,7 @@ analysis_df |>
   labs(title = "Polypharmacy and 30-Day Mortality",
        x = "Number of Medication Classes Received",
        y = "30-Day Mortality Rate")
+
+ggsave("results/figures/polypharmacy-frequency.png", 
+       width = 8, height = 5, dpi = 300)
 ```
