@@ -9,8 +9,15 @@ Exploratory Data Analysis
 ## Outcome: 30-Day Mortality
 
 ```{r}
+library(tidyverse)
+library(here)
+library(gt)
+
 #| fig-cap: "Distribution of 30-day mortality in the analytic cohort"
-analysis_df <- read_csv("data/processed-data/analysis_dataset.csv", show_col_types = FALSE)
+analysis_df <- read_csv(
+  here("data", "processed-data", "analysis_dataset.csv"),
+  show_col_types = FALSE
+)
 analysis_df |>
   mutate(Outcome = if_else(mortality_30day == 1, "Died (≤30 days)", "Survived")) |>
   count(Outcome) |>
@@ -25,6 +32,8 @@ analysis_df |>
        x = NULL, y = "Number of Admissions") +
   theme(plot.title = element_text(face = "bold"))
 ```
+
+30-day mortality is low in this cohort, there are about 1 in 20 admissions that resulted in death within 30 days.
 
 ## Demographics
 
@@ -41,6 +50,8 @@ analysis_df |>
   labs(title = "Age Distribution by 30-Day Mortality",
        x = "Age at Admission (years)", y = "Count", fill = "Outcome")
 ```
+
+The age distribution shows that most people in the study are older adults. 
 
 ### Mortality Rate by Age Group
 
@@ -61,6 +72,8 @@ analysis_df |>
   labs(title = "30-Day Mortality Rate by Age Group",
        x = "Age Group", y = "Mortality Rate")
 ```
+
+30 day mortality increased drastically by as the age group increased.
 
 ### Mortality Rate by Gender
 
@@ -151,6 +164,8 @@ analysis_df |>
        x = NULL, y = "Proportion of Admissions")
 ```
 
+The graph shows that many particpants used cardiovascular and anticoagulations medicine. 
+
 ## 4.4 Medication Class vs. 30-Day Mortality
 
 This is the core exploratory analysis: comparing 30-day mortality rates across patients who did vs. did not receive each medication class.
@@ -200,6 +215,9 @@ med_mortality |>
   tab_header(title = "30-Day Mortality by Medication Class (Unadjusted)")
 ```
 
+Mortality rates were higher with patients taking vasopressors, sedatives, and diruetics; this could be because the severity of their illness.
+
+
 ## Number of Medication Classes per Admission
 
 Polypharmacy (receiving many medication classes) may itself be associated with disease severity and mortality.
@@ -223,3 +241,5 @@ analysis_df |>
        x = "Number of Medication Classes Received",
        y = "30-Day Mortality Rate")
 ```
+
+Mortality increased as the number of medications increased, this also could be explained by the increasing severity of illness as more medications were needed.
