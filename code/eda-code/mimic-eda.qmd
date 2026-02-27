@@ -9,12 +9,12 @@ Exploratory Data Analysis
 ```{r}
 library(tidyverse)
 library(gt)
+library(here)
 ```
 ## Outcome: 30-Day Mortality
 
 ```{r}
 #| fig-cap: "Distribution of 30-day mortality in the analytic cohort"
-
 analysis_df <- read_csv("data/processed-data/analysis_dataset.csv", show_col_types = FALSE)
 analysis_df |>
   mutate(Outcome = if_else(mortality_30day == 1, "Died (≤30 days)", "Survived")) |>
@@ -34,6 +34,8 @@ ggsave("results/figures/day-30-mortality.png",
        width = 8, height = 5, dpi = 300)
 ```
 
+30-day mortality is low in this cohort, there are about 1 in 20 admissions that resulted in death within 30 days.
+
 ## Demographics
 
 ### Age Distribution by Outcome
@@ -52,6 +54,8 @@ analysis_df |>
 ggsave("results/figures/age-distribution-mortality.png", 
        width = 8, height = 5, dpi = 300)
 ```
+
+The age distribution shows that most people in the study are older adults. 
 
 ### Mortality Rate by Age Group
 
@@ -74,6 +78,8 @@ analysis_df |>
 ggsave("results/figures/mortality_by_age.png", 
        width = 8, height = 5, dpi = 300)
 ```
+
+30 day mortality increased drastically by as the age group increased.
 
 ### Mortality Rate by Gender
 
@@ -169,6 +175,8 @@ ggsave("results/figures/perscriptoin-frequency.png",
        width = 8, height = 5, dpi = 300)
 ```
 
+The graph shows that many particpants used cardiovascular and anticoagulations medicine. 
+
 ## 4.4 Medication Class vs. 30-Day Mortality
 
 This is the core exploratory analysis: comparing 30-day mortality rates across patients who did vs. did not receive each medication class.
@@ -224,6 +232,9 @@ ggsave("results/tables/medication-mortality-summary.png",
        width = 8, height = 5, dpi = 300)
 ```
 
+Mortality rates were higher with patients taking vasopressors, sedatives, and diruetics; this could be because the severity of their illness.
+
+
 ## Number of Medication Classes per Admission
 
 Polypharmacy (receiving many medication classes) may itself be associated with disease severity and mortality.
@@ -250,3 +261,5 @@ analysis_df |>
 ggsave("results/figures/polypharmacy-frequency.png", 
        width = 8, height = 5, dpi = 300)
 ```
+
+Mortality increased as the number of medications increased, this also could be explained by the increasing severity of illness as more medications were needed.
