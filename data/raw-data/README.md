@@ -23,3 +23,4 @@ To obtain these files you must:
 These files should not be distributed publicly or posted to public repositories. Redistribution of MIMIC-IV data in any form 
 is prohibited. You must obtain your own access via PhysioNet and download the full database yourself.
 
+The raw data files were too large to upload onto GitHub and would have to be downloaded locally. 

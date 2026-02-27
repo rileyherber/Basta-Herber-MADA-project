@@ -13,3 +13,5 @@ This file is automatically created by running `code/eda.qmd`. Do not edit
 it manually. To regenerate it, run:
 
     quarto render code\processing-code\mimic-processing.qmd
+
+The raw data files are not provided in the repository. 
