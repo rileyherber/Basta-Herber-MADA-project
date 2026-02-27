@@ -24,16 +24,12 @@ library(knitr)
 
 **Authors**  
 
-* First Author$^{1,2,*}$ (ORCID: 0000-0000-1234-5678) 
-* Second Author$^{3, *}$
-* Third Author$^{3, \dagger}$
-* Last Author$^{1, 2, \land}$ 
+* Rebecca Basta and Riley Herber 
 
 **Author affiliations**  
 
 1. College of Public Health, University of Georgia, Athens, GA, USA.
-2. Another Affiliation, Athens, GA, USA.
-3. Yet another Affiliation.
+
 
 $*$ These authors contributed equally to this work.
 
@@ -73,12 +69,6 @@ Our primary objective is to examine how different medications and medication reg
 medications are associated with higher or lower mortality rates. To analyze the relationship between medication, use and mortality in the MIMIC-IV dataset, we would first clean and organize
 medication and outcome data. We would then explore general patterns by comparing mortality rates across patients who received different medications or groups of medications. Simple summaries and
 visualizations could be used to identify trends or potential associations. This exploratory analysis would help generate initial insights and guide more detailed analyses later on.
-
-To cite other work (important everywhere, but likely happens first in introduction), make sure your references are in the BibTeX file specified in the YAML header above and have the right BibTeX key. Then you can include like this:
-
-Examples of reproducible research projects can for instance be found in [@mckay2020; @mckay2020a].
-
-
 
 {{< pagebreak >}}
 
