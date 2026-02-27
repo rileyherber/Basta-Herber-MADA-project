@@ -11,6 +11,7 @@ library(tidyverse)
 library(gt)
 library(here)
 ```
+
 ## Outcome: 30-Day Mortality
 
 ```{r}
@@ -86,19 +87,26 @@ ggsave("results/figures/mortality_by_age.png",
 ```{r}
 #| fig-cap: "30-day mortality rate by gender"
 
-analysis_df |>
+tbl_gender <- analysis_df |>
   group_by(gender) |>
   summarise(
     n         = n(),
     deaths    = sum(mortality_30day),
     mort_rate = deaths / n
-  ) |>
+  )
+
+tbl_gender |>
   gt() |>
   fmt_percent(columns = mort_rate, decimals = 1) |>
-  cols_label(gender = "Gender", n = "Admissions",
-             deaths = "Deaths", mort_rate = "30-Day Mortality Rate")
-ggsave("results/tables/mortality_by_gender.png", 
-       width = 8, height = 5, dpi = 300)
+  cols_label(
+    gender    = "Gender",
+    n         = "Admissions",
+    deaths    = "Deaths",
+    mort_rate = "30-Day Mortality Rate"
+  )
+
+saveRDS(tbl_gender, here("results", "tables", "mortality_by_gender.rds"))
+
 ```
 
 ## Medication Class Usage
@@ -228,8 +236,8 @@ med_mortality |>
   ) |>
   tab_header(title = "30-Day Mortality by Medication Class (Unadjusted)")
 
-ggsave("results/tables/medication-mortality-summary.png", 
-       width = 8, height = 5, dpi = 300)
+saveRDS(med_mortality, here("results", "tables", "medication_mortality_summary.rds"))
+
 ```
 
 Mortality rates were higher with patients taking vasopressors, sedatives, and diruetics; this could be because the severity of their illness.

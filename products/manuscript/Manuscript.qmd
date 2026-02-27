@@ -2,10 +2,12 @@
 title: "How Medications and Medication Regimens relate to Patient Mortality"
 author: "Rebecca Basta and Riley Herber"
 format:
-  docx:
-    toc: false
+  html:
+    toc: true
+    toc-depth: 3
     number-sections: true
     highlight-style: github
+    self-contained: true
 bibliography: ../../assets/dataanalysis-references.bib
 csl: ../../assets/american-journal-of-epidemiology.csl
 ---
@@ -25,18 +27,11 @@ library(knitr)
 **Authors**  
 
 * Rebecca Basta and Riley Herber 
+These authors contributed equally to this work.
 
 **Author affiliations**  
 
-1. College of Public Health, University of Georgia, Athens, GA, USA.
-
-
-$*$ These authors contributed equally to this work.
-
-$\land$ Corresponding author: some@email.com
-
-$\dagger$ Disclaimer: The opinions expressed in this article are the
-author's own and don't reflect their employer.
+1. University of Georgia, Athens, GA, USA.
 
 
 {{< pagebreak >}}
@@ -75,35 +70,22 @@ visualizations could be used to identify trends or potential associations. This 
 
 # Methods 
 
-_Describe your methods. That should describe the data, the cleaning processes, and the analysis approaches. You might want to provide a shorter description here and all the details in the supplement._
-
-
-## Schematic of workflow
-
-Sometimes you might want to show a schematic diagram/figure that was not created with code (if you can do it with code, do it). @fig-schematic is an example of some - completely random/unrelated - schematic that was generated with BioRender.
-We store those figures in the `assets` folder.
-
-```{r}
-#| label: fig-schematic
-#| fig-cap: "A figure that is manually generated and shows some overview/schematic. This has nothing to do with the data, it's just a random one from one of our projects I found and placed here."
-#| echo: FALSE
-knitr::include_graphics(here("assets","antigen-recognition.png"))
-```
-
-
+This study uses the MIMIC-IV (Medical Information Mart for Intensive Care, version IV) database to examine the relationship between medication use and 30-day mortality in hospitalized patients. All data processing and analysis was conducted in R. Full cleaning and wrangling code is documented in `code/processing-code/mimic-processing.qmd` and exploratory analysis code is in `code/eda-code/mimic-eda.qmd`.
 
 
 ## Data acquisition
-_As applicable, explain where and how you got the data. If you directly import the data from an online source, you can combine this section with the next._
+Data were obtained from the MIMIC-IV database (v3.1), an available de-identified electronic health records database from Beth Israel Deaconess Medical Center, available via PhysioNet. Please see README file in the raw-data folder to get more information on how to gain access to the database. Access requires completion of a data use agreement and credentialing through PhysioNet. The following tables from the `hosp` module were used:
 
+- `patients.csv` — patient demographics including gender, age, and date of death
+- `admissions.csv` — hospital admission and discharge records
+- `prescriptions.csv` — medication orders per admission
 
 ## Data import and cleaning
-_Write code that reads in the file and cleans it so it's ready for analysis. Since this will be fairly long code for most datasets, it might be a good idea to have it in one or several R scripts. If that is the case, explain here briefly what kind of cleaning/processing you do, and provide more details and well documented code somewhere (e.g. as supplement in a paper). All materials, including files that contain code, should be commented well so everyone can follow along._
-
+Raw CSV files were loaded into R and cleaned as follows. Admissions with a length of stay less than 0 or greater than 365 days were removed as likely data entry errors. Medication drug names were standardized to uppercase and stripped of extra whitespace. Drugs were then assigned to one of 13 broad pharmacological classes (e.g. antibiotics, opioids, vasopressors) using keyword matching. For each admission, a binary indicator was created for each medication class indicating whether at least one drug from that class was prescribed during the stay. Full details of all cleaning steps are documented 
+in `code/processing-code/mimic-processing.qmd`.
 
 ## Statistical analysis
-_Explain anything related to your statistical analyses._
-
+This report presents unadjusted exploratory analyses. Mortality rates are compared across medication classes, age groups, and gender using summary tables and visualizations.
 
 {{< pagebreak >}}
 
@@ -112,21 +94,71 @@ _Explain anything related to your statistical analyses._
 
 ## Exploratory/Descriptive analysis
 
-_Use a combination of text/tables/figures to explore and describe your data. Show the most important descriptive results here. Additional ones should go in the supplement. Even more can be in the R and Quarto files that are part of your project._
-
-
-@tbl-summarytable shows a summary of the data.
-
-Note the loading of the data providing a **relative** path using the `../../` notation. (Two dots means a folder up). You never want to specify an **absolute** path like `C:\ahandel\myproject\results\` because if you share this with someone, it won't work for them since they don't have that path. You can also use the `here` R package to create paths. See examples of that below. I generally recommend the `here` package.
-
 ```{r}
-#| label: tbl-summarytable
-#| tbl-cap: "Data summary table."
-#| echo: FALSE
-resulttable <- readRDS("../../results/tables/summarytable.rds")
-knitr::kable(resulttable)
+#| label: fig-mortality
+#| fig-cap: "30-Day Mortality Distribution"
+library(here)
+knitr::include_graphics(here("results", "figures", "day-30-mortality.png"))
+
 ```
 
+@fig-mortality shows that 30-day mortality is low in this cohort, there are about 1 in 20 admissions that resulted in death within 30 days.
+
+```{r}
+#| label: fig-age-distribution
+#| fig-cap: "Age distribution by 30-day mortality"
+knitr::include_graphics(here("results", "figures", "age-distribution-mortality.png"))
+
+```
+
+@fig-age-distribution shows that most people in this study are in the age range of 50-75.
+
+```{r}
+#| label: fig-age-mortality
+#| fig-cap: "30-day mortality rate by age group"
+knitr::include_graphics(here("results", "figures", "mortality_by_age.png"))
+
+```
+
+@fig-age-mortality shows that 30 day mortality increased as the age group increased, with the highest mortality rate in the 75+ group.
+
+```{r}
+#| label: tbl-gender-mortality
+#| tbl-cap: "30-day mortality rate by gender"
+#| echo: false
+
+readRDS(here("results", "tables", "mortality_by_gender.rds")) |>
+  knitr::kable()
+```
+
+@fig-med-frequency shows hows that many particpants used cardiovascular and anticoagulations medicine. The highest used medications were anticoagulants and opioids.
+
+```{r}
+#| label: fig-med-mortality
+#| fig-cap: "30-day mortality rate by medication class (unadjusted)"
+knitr::include_graphics(here("results", "figures", "unadjusted-perscriptoin-frequency.png"))
+```
+
+@fig-med-mortality suggests that patients who received vasopressors had the highest 30-day mortality rate, followed by opioids. In contrast, patients receiving ACE inhibitors, statins, and calcium channel blockers had lower mortality rates than those who did not receive them, likely reflecting their use in more stable patients. These associations are unadjusted and largely reflect disease severity rather than direct drug effects. Sicker patients tend to receive more aggressive medications and have worse outcomes.
+
+```{r}
+#| label: tbl-med-mortality-summary
+#| tb2-cap: "30-day mortality rate by medication class (unadjusted)"
+#| echo: false
+
+readRDS(here("results", "tables", "medication_mortality_summary.rds")) |>
+  knitr::kable()
+```
+
+tbl-med-mortality-summary shows mortality rates were higher with patients taking vasopressors, sedatives, and diruetics; this could be because the severity of their illness.
+
+```{r}
+#| label: fig-polypharmacy-freq
+#| fig-cap: "Number of medication classes received vs. 30-day mortality"
+knitr::include_graphics(here("results", "figures", "polypharmacy-frequency.png"))
+```
+
+@fig-polypharmacy-freq shows mortality increased as the number of medications increased, this also could be explained by the increasing severity of illness as more medications were needed.
 
 
 ## Basic statistical analysis
@@ -140,7 +172,7 @@ _To get some further insight into your data, if reasonable you could compute sim
 #| label: fig-result
 #| fig-cap: "Height and weight stratified by gender."
 #| echo: FALSE
-knitr::include_graphics(here("results","figures","height-weight-stratified.png"))
+#knitr::include_graphics(here("results","figures","height-weight-stratified.png"))
 ```
 
 
@@ -148,14 +180,13 @@ knitr::include_graphics(here("results","figures","height-weight-stratified.png")
 
 _Use one or several suitable statistical/machine learning methods to analyze your data and to produce meaningful figures, tables, etc. This might again be code that is best placed in one or several separate R scripts that need to be well documented. You want the code to produce figures and data ready for display as tables, and save those. Then you load them here._
 
-Example @tbl-resulttable2 shows a summary of a linear model fit.
 
 ```{r}
 #| label: tbl-resulttable2
 #| tbl-cap: "Linear model fit table."
 #| echo: FALSE
-resulttable2 <- readRDS(here("results","tables","resulttable2.rds"))
-knitr::kable(resulttable2)
+#resulttable2 <- readRDS(here("results","tables","resulttable2.rds"))
+#knitr::kable(resulttable2)
 ```
 
 
