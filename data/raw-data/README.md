@@ -1,14 +1,25 @@
 # raw-data
 
-This folder should contain all raw data. As needed add sub-folders.
+This folder contains the original, unmodified CSV files from the MIMIC-IV database (v3.1).
 
-Currently, as an example, it contains a simple made-up data-set in an Excel file.
+## Source
+MIMIC-IV is a freely available de-identified clinical database from Beth Israel 
+Deaconess Medical Center, available via PhysioNet:
+https://physionet.org/content/mimiciv/
 
-The dataset contains the variables `Height`, `Weight` and `Gender` of a few imaginary individuals.
+## Access
+To obtain these files you must:
+1. Create a PhysioNet account at https://physionet.org/
+2. Complete the CITI "Data or Specimens Only Research" training
+3. Sign the MIMIC-IV data use agreement
+4. Download the files from the `hosp` module
 
-The dataset purposefully contains some faulty entries that need to be cleaned.
+## Files
+- `patients.csv` — patient demographics (gender, age, date of death)
+- `admissions.csv` — hospital admission and discharge records
+- `prescriptions.csv` — medication orders per admission
 
-Generally, any dataset should contain some meta-data explaining what each variable in the dataset is. (This is often called a **Codebook**.) For this simple example, the codebook is given as a second sheet in the Excel file.
-
-This raw data-set should generally not be edited by hand. It should instead be loaded and processed/cleaned using code.
+## Important
+These files should not be distributed publicly or posted to public repositories. Redistribution of MIMIC-IV data in any form 
+is prohibited. You must obtain your own access via PhysioNet and download the full database yourself.
 

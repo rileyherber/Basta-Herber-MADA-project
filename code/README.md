@@ -1,12 +1,32 @@
 # code
+This folder contains all data cleaning and wrangling scripts for the project.
 
-This folder and sub-folders should contain all your code. This can be R or Quarto files (or files for other programming languages). 
+## Files
 
-Place your files in the appropriate sub-folders. You can structure the folders as appropriate.
+- `mimic-processing.qmd` — loads the raw MIMIC-IV CSV files, cleans and merges 
+  tables, computes 30-day mortality, assigns medication classes, and saves 
+  the final analytic dataset.
 
-You can either have fewer large scripts, or multiple scripts that do only specific actions. Those can be R or Quarto files (or some other language/format). In either case, document the scripts and what goes on in them so well that someone else (including future you) can easily figure out what is happening.
+## Inputs
 
-The scripts should load the appropriate data (e.g. raw or processed), perform actions, and save results (e.g. processed data, figures, computed values) in the appropriate folders. Document somewhere what inputs each script takes and where output is placed. 
+Raw data files from `data/raw-data/`:
+- `patients.csv`
+- `admissions.csv`
+- `prescriptions.csv`
 
-If scripts need to be run in a specific order, document this. Either as comments in the script, or in a separate text file such as this readme file. Ideally of course in both locations.
+## Output
 
+- `data/processed-data/analysis_dataset.csv` — the final analytic dataset used 
+  by all downstream scripts and the manuscript
+
+## How to Run
+
+From the project root:
+
+    quarto render code\processing-code\mimic-processing.qmd
+
+## Notes
+
+- This script must be run before the EDA script and before the manuscript
+- The sampling block near the top of the script limits the data to 10,000 
+  admissions for development speed. Comment it out to run on the full dataset.

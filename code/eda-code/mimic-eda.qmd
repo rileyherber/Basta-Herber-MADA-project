@@ -1,0 +1,225 @@
+---
+title: "Exploratory Analysis of Medication Use and Patient Mortality in MIMIC-IV"
+date: "2026-02-26"
+output: html_document
+---
+
+Exploratory Data Analysis
+
+## Outcome: 30-Day Mortality
+
+```{r}
+#| fig-cap: "Distribution of 30-day mortality in the analytic cohort"
+analysis_df <- read_csv("data/processed-data/analysis_dataset.csv", show_col_types = FALSE)
+analysis_df |>
+  mutate(Outcome = if_else(mortality_30day == 1, "Died (≤30 days)", "Survived")) |>
+  count(Outcome) |>
+  mutate(pct = n / sum(n)) |>
+  ggplot(aes(x = Outcome, y = n, fill = Outcome)) +
+  geom_col(width = 0.5, show.legend = FALSE) +
+  geom_text(aes(label = paste0(n, "\n(", scales::percent(pct, 0.1), ")")),
+            vjust = -0.3, size = 4) +
+  scale_fill_manual(values = c("Died (≤30 days)" = "#d62728",
+                                "Survived"        = "#2ca02c")) +
+  labs(title = "30-Day Mortality Distribution",
+       x = NULL, y = "Number of Admissions") +
+  theme(plot.title = element_text(face = "bold"))
+```
+
+## Demographics
+
+### Age Distribution by Outcome
+
+```{r}
+#| fig-cap: "Age distribution by 30-day mortality"
+
+analysis_df |>
+  mutate(Outcome = if_else(mortality_30day == 1, "Died", "Survived")) |>
+  ggplot(aes(x = age_at_admission, fill = Outcome)) +
+  geom_histogram(bins = 40, alpha = 0.7, position = "identity") +
+  scale_fill_manual(values = c("Died" = "#d62728", "Survived" = "#2ca02c")) +
+  labs(title = "Age Distribution by 30-Day Mortality",
+       x = "Age at Admission (years)", y = "Count", fill = "Outcome")
+```
+
+### Mortality Rate by Age Group
+
+```{r}
+#| fig-cap: "30-day mortality rate by age group"
+
+analysis_df |>
+  group_by(age_group) |>
+  summarise(
+    n          = n(),
+    deaths     = sum(mortality_30day),
+    mort_rate  = deaths / n
+  ) |>
+  ggplot(aes(x = age_group, y = mort_rate)) +
+  geom_col(fill = "#1f77b4", width = 0.6) +
+  geom_text(aes(label = scales::percent(mort_rate, 0.1)), vjust = -0.3) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(title = "30-Day Mortality Rate by Age Group",
+       x = "Age Group", y = "Mortality Rate")
+```
+
+### Mortality Rate by Gender
+
+```{r}
+#| fig-cap: "30-day mortality rate by gender"
+
+analysis_df |>
+  group_by(gender) |>
+  summarise(
+    n         = n(),
+    deaths    = sum(mortality_30day),
+    mort_rate = deaths / n
+  ) |>
+  gt() |>
+  fmt_percent(columns = mort_rate, decimals = 1) |>
+  cols_label(gender = "Gender", n = "Admissions",
+             deaths = "Deaths", mort_rate = "30-Day Mortality Rate")
+```
+
+## Medication Class Usage
+
+### Most Frequently Prescribed Medication Classes
+
+```{r}
+#| fig-cap: "Frequency of medication classes across admissions"
+med_class_map <- tribble(
+  ~pattern,               ~med_class,
+  "ASPIRIN",              "Antiplatelet",
+  "CLOPIDOGREL",          "Antiplatelet",
+  "HEPARIN",              "Anticoagulant",
+  "WARFARIN",             "Anticoagulant",
+  "ENOXAPARIN",           "Anticoagulant",
+  "METOPROLOL",           "Beta-Blocker",
+  "CARVEDILOL",           "Beta-Blocker",
+  "ATENOLOL",             "Beta-Blocker",
+  "LISINOPRIL",           "ACE Inhibitor",
+  "ENALAPRIL",            "ACE Inhibitor",
+  "CAPTOPRIL",            "ACE Inhibitor",
+  "AMLODIPINE",           "Calcium Channel Blocker",
+  "DILTIAZEM",            "Calcium Channel Blocker",
+  "FUROSEMIDE",           "Diuretic",
+  "SPIRONOLACTONE",       "Diuretic",
+  "VANCOMYCIN",           "Antibiotic",
+  "PIPERACILLIN",         "Antibiotic",
+  "CEFAZOLIN",            "Antibiotic",
+  "METRONIDAZOLE",        "Antibiotic",
+  "CIPROFLOXACIN",        "Antibiotic",
+  "INSULIN",              "Insulin",
+  "MORPHINE",             "Opioid",
+  "FENTANYL",             "Opioid",
+  "HYDROMORPHONE",        "Opioid",
+  "OXYCODONE",            "Opioid",
+  "NOREPINEPHRINE",       "Vasopressor",
+  "VASOPRESSIN",          "Vasopressor",
+  "DOPAMINE",             "Vasopressor",
+  "EPINEPHRINE",          "Vasopressor",
+  "PROPOFOL",             "Sedative",
+  "MIDAZOLAM",            "Sedative",
+  "LORAZEPAM",            "Sedative",
+  "DEXAMETHASONE",        "Corticosteroid",
+  "PREDNISONE",           "Corticosteroid",
+  "METHYLPREDNISOLONE",   "Corticosteroid",
+  "ATORVASTATIN",         "Statin",
+  "SIMVASTATIN",          "Statin",
+  "ROSUVASTATIN",         "Statin"
+)
+
+# Get binary med class columns
+med_cols <- tolower(unique(med_class_map$med_class)) |>
+  str_replace_all("[ -]", "_") |>
+  intersect(names(analysis_df))
+
+analysis_df |>
+  select(all_of(med_cols)) |>
+  summarise(across(everything(), sum)) |>
+  pivot_longer(everything(), names_to = "med_class", values_to = "n_admissions") |>
+  mutate(
+    med_class = str_to_title(str_replace_all(med_class, "_", " ")),
+    pct       = n_admissions / nrow(analysis_df)
+  ) |>
+  arrange(desc(n_admissions)) |>
+  ggplot(aes(x = reorder(med_class, n_admissions), y = pct)) +
+  geom_col(fill = "#1f77b4") +
+  geom_text(aes(label = scales::percent(pct, 0.1)), hjust = -0.1, size = 3.5) +
+  scale_y_continuous(labels = scales::percent_format(), expand = expansion(mult = c(0, 0.15))) +
+  coord_flip() +
+  labs(title = "Medication Class Usage Among Admitted Patients",
+       x = NULL, y = "Proportion of Admissions")
+```
+
+## 4.4 Medication Class vs. 30-Day Mortality
+
+This is the core exploratory analysis: comparing 30-day mortality rates across patients who did vs. did not receive each medication class.
+
+```{r}
+#| fig-cap: "30-day mortality rate by medication class (unadjusted)"
+
+med_mortality <- map_dfr(med_cols, function(col) {
+  analysis_df |>
+    group_by(received = .data[[col]]) |>
+    summarise(n = n(), deaths = sum(mortality_30day), .groups = "drop") |>
+    mutate(
+      med_class  = str_to_title(str_replace_all(col, "_", " ")),
+      mort_rate  = deaths / n,
+      received   = if_else(received == 1L, "Received", "Not Received")
+    )
+})
+
+med_mortality |>
+  ggplot(aes(x = reorder(med_class, mort_rate), y = mort_rate, fill = received)) +
+  geom_col(position = "dodge", width = 0.7) +
+  scale_fill_manual(values = c("Received" = "#d62728", "Not Received" = "#aec7e8")) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  coord_flip() +
+  labs(title = "Unadjusted 30-Day Mortality Rate by Medication Class",
+       subtitle = "Patients who received vs. did not receive each class",
+       x = NULL, y = "30-Day Mortality Rate", fill = NULL) +
+  theme(legend.position = "top")
+```
+
+### Summary Table
+
+```{r}
+med_mortality |>
+  filter(received == "Received") |>
+  arrange(desc(mort_rate)) |>
+  select(med_class, n, deaths, mort_rate) |>
+  gt() |>
+  fmt_percent(columns = mort_rate, decimals = 1) |>
+  fmt_number(columns = c(n, deaths), use_seps = TRUE, decimals = 0) |>
+  cols_label(
+    med_class = "Medication Class",
+    n         = "Admissions Receiving",
+    deaths    = "Deaths (30-day)",
+    mort_rate = "Mortality Rate"
+  ) |>
+  tab_header(title = "30-Day Mortality by Medication Class (Unadjusted)")
+```
+
+## Number of Medication Classes per Admission
+
+Polypharmacy (receiving many medication classes) may itself be associated with disease severity and mortality.
+
+```{r}
+#| fig-cap: "Number of medication classes received vs. 30-day mortality"
+
+analysis_df |>
+  mutate(n_med_classes = rowSums(across(all_of(med_cols)))) |>
+  group_by(n_med_classes) |>
+  summarise(
+    n         = n(),
+    mort_rate = mean(mortality_30day)
+  ) |>
+  ggplot(aes(x = n_med_classes, y = mort_rate)) +
+  geom_point(aes(size = n), color = "#d62728", alpha = 0.8) +
+  geom_smooth(method = "loess", se = TRUE, color = "#1f77b4") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  scale_size_continuous(name = "N Admissions") +
+  labs(title = "Polypharmacy and 30-Day Mortality",
+       x = "Number of Medication Classes Received",
+       y = "30-Day Mortality Rate")
+```
