@@ -1,0 +1,112 @@
+
+```{r}
+library(dplyr)
+library(purrr)
+
+set.seed(42)
+```
+
+```{r}
+# Patients 
+# Create base patient table with demographics
+
+patients_syn <- data.frame(
+  subject_id  = 1:n_patients,
+  gender      = sample(c("M", "F"), n_patients, replace = TRUE),
+  anchor_age  = round(rnorm(n_patients, 60, 18)),
+  anchor_year = sample(2008:2019, n_patients, replace = TRUE)
+)
+```
+
+```{r}
+# Assign death dates to 10% of patients
+
+mortality_rate <- 0.10
+death_idx      <- sample(1:n_patients, size = round(mortality_rate * n_patients))
+start_date     <- as.Date("2010-01-01")
+end_date       <- as.Date("2020-12-31")
+
+# Use runif() over the numeric date range for uniform random sampling, then convert back to Date; route through character to avoid integer coercion
+patients_syn$dod <- NA_character_
+patients_syn$dod[death_idx] <- as.character(
+  as.Date(
+    runif(length(death_idx), as.numeric(start_date), as.numeric(end_date)),
+    origin = "1970-01-01"
+  )
+)
+patients_syn$dod <- as.Date(patients_syn$dod)
+```
+
+```{r}
+# Admissions 
+# Generate 1–3 admissions per patient; admission and discharge times are
+# POSIXct with explicit UTC timezone to avoid system-locale surpris
+
+race_categories <- c("WHITE", "BLACK/AFRICAN AMERICAN",
+                     "HISPANIC/LATINO", "ASIAN", "OTHER")
+race_probs      <- c(0.60, 0.15, 0.12, 0.08, 0.05)
+
+admissions_syn <- map_df(patients_syn$subject_id, function(id) {
+  n_adm     <- sample(1:3, 1)
+   
+   # Random admit times spread across ~9.5 years (3e8 seconds from 2010-01-01)
+  admittime <- as.POSIXct("2010-01-01", tz = "UTC") + runif(n_adm, 0, 3e8)
+
+    # LOS drawn from Exponential(mean = 5 days); converted from days to seconds
+  dischtime <- admittime + rexp(n_adm, 1 / 5) * 86400
+
+  data.frame(
+    subject_id     = id,                               # integer, matches patients
+    hadm_id        = paste0(id, "_", 1:n_adm),
+    admittime      = admittime,
+    dischtime      = dischtime,
+    admission_type = sample(c("EMERGENCY", "ELECTIVE", "URGENT"),
+                            n_adm, replace = TRUE),
+    race           = sample(race_categories, n_adm,
+                            replace = TRUE, prob = race_probs)
+  )
+})
+```
+
+```{r}
+# Prescriptions 
+
+# Iterate by row index so subject_id is copied as an integer directly from admissions_syn — avoids the type mismatch that arises from string-splitting hadm_id
+drug_list <- c("Metformin", "Insulin", "Furosemide",
+               "Atorvastatin", "Lisinopril", "Heparin", "Aspirin")
+
+prescriptions_syn <- map_df(seq_len(nrow(admissions_syn)), function(i) {
+  n_rx <- sample(3:7, 1)
+  data.frame(
+    hadm_id      = admissions_syn$hadm_id[i],
+    subject_id   = admissions_syn$subject_id[i],   # integer, no string parsing
+    drug         = sample(drug_list, n_rx, replace = TRUE),
+    dose_val_rx  = round(rlnorm(n_rx, 2, 0.5), 1),
+    dose_unit_rx = "mg"
+  )
+})
+```
+
+```{r}
+# hospital_expire_flag (death within admission window) 
+# Flag admissions where the patient died *during* that specific admission
+# (dod falls within [admittime, dischtime]).
+# dod is cast to POSIXct (UTC) before comparison to match the timestamp columns.
+admissions_syn <- admissions_syn %>%
+  left_join(patients_syn %>% select(subject_id, dod), by = "subject_id") %>%
+  mutate(
+    dod_posix            = as.POSIXct(dod, tz = "UTC"),
+    hospital_expire_flag = if_else(
+      !is.na(dod_posix) & dod_posix >= admittime & dod_posix <= dischtime,
+      1L, 0L
+    )
+  ) %>%
+  select(-dod_posix) # drop the temporary cast column
+```
+
+```{r}
+write.csv(patients_syn,     "data/raw-data/patients_syn.csv",     row.names = FALSE)
+write.csv(admissions_syn,   "data/raw-data/admissions_syn.csv",   row.names = FALSE)
+write.csv(prescriptions_syn,"data/raw-data/prescriptions_syn.csv",row.names = FALSE)
+```
+

@@ -1,6 +1,6 @@
 ---
 title: "MIMIC-IV Data Processing Pipeline"
-author: "Riley Herber and Rebecca BAsta"
+author: "Riley Herber and Rebecca Basta"
 date: "2026-02-26"
 output: html_document
 ---
@@ -23,242 +23,196 @@ library(here)        # relative file paths
 theme_set(theme_minimal(base_size = 13))
 ```
 
-# 1. Data Loading
+1. Data Loading
 
 The tables used are:
 
-| Table | Description |
-|---|---|
-| `patients.csv` | Demographics (gender, anchor_age, dod) |
-| `admissions.csv` | Admission/discharge times, insurance, ethnicity |
-| `prescriptions.csv` | Medication orders per hospital stay |
-
+Table	Description
+patients.csv	Demographics (gender, anchor_age, dod)
+admissions.csv	Admission/discharge times, race
+prescriptions.csv	Medication orders per hospital stay
+patients      <- read_csv("data/raw-data/patients_syn.csv", show_col_types = FALSE)
+admissions    <- read_csv("data/raw-data/admissions_syn.csv", show_col_types = FALSE)
+prescriptions <- read_csv("data/raw-data/prescriptions_syn.csv", show_col_types = FALSE)
 
 ```{r}
-patients      <- read_csv("data/raw-data/patients.csv", show_col_types = FALSE)
-admissions    <- read_csv("data/raw-data/admissions.csv", show_col_types = FALSE)
-prescriptions <- read_csv("data/raw-data/prescriptions.csv", show_col_types = FALSE)
-
-# work with a sample for speed
-# Comment these lines out when ready to run on the full dataset
+# Optional sampling for speed
 set.seed(123)
-sampled_ids   <- admissions |> slice_sample(n = 10000) |> pull(hadm_id)
+
+admissions <- admissions_syn
+prescriptions <- prescriptions_syn
+patients <- patients_syn
+
+
+sampled_ids <- admissions |>
+  slice_sample(prop = 0.8) |>
+  pull(hadm_id)
+
 admissions    <- admissions    |> filter(hadm_id %in% sampled_ids)
 prescriptions <- prescriptions |> filter(hadm_id %in% sampled_ids)
 patients      <- patients      |> filter(subject_id %in% admissions$subject_id)
 
-# Clean column names to snake_case
 patients      <- clean_names(patients)
 admissions    <- clean_names(admissions)
 prescriptions <- clean_names(prescriptions)
 
-# Quick dimension check
-cat("patients:     ", nrow(patients),      "rows,", ncol(patients),      "cols\n")
-cat("admissions:   ", nrow(admissions),    "rows,", ncol(admissions),    "cols\n")
-cat("prescriptions:", nrow(prescriptions), "rows,", ncol(prescriptions), "cols\n")
+cat("patients:", nrow(patients), "\n")
+cat("admissions:", nrow(admissions), "\n")
+cat("prescriptions:", nrow(prescriptions), "\n")
 ```
 
----
 
-# 2. Data Cleaning
-
-## 2.1 Patients Table
+2. Data Cleaning
+2.1 Patients Table
 
 ```{r}
 patients_clean <- patients |>
   select(subject_id, gender, anchor_age, anchor_year, dod) |>
-  # Ensure dod is parsed as a date
   mutate(dod = as_date(dod))
 
-# Check for missing values
 skim(patients_clean)
+
 ```
 
-## 2.2 Admissions Table
-
+2.2 Admissions Table
 ```{r}
 admissions_clean <- admissions |>
-  select(subject_id, hadm_id, admittime, dischtime, admission_type,
-         admission_location, discharge_location, insurance, race) |>
+  select(subject_id, hadm_id, admittime, dischtime, admission_type, race) |>
   mutate(
     admittime  = ymd_hms(admittime),
     dischtime  = ymd_hms(dischtime),
-    # Length of stay in days
     los_days   = as.numeric(difftime(dischtime, admittime, units = "days"))
   ) |>
-  # Remove admissions with negative or implausible LOS (data entry errors)
   filter(los_days >= 0, los_days < 365)
 
 cat("Admissions after LOS filter:", nrow(admissions_clean), "\n")
+
 ```
 
-## 2.3 Compute 30-Day Mortality
 
-30-day mortality is defined as death (recorded in `patients.dod`) occurring within 30 days of the admission date.
+3. Compute 30-Day Mortality
 
 ```{r}
-# Join patient death date onto admissions
 admissions_mortality <- admissions_clean |>
-  left_join(patients_clean |> select(subject_id, dod, gender, anchor_age),
-            by = "subject_id") |>
+  left_join(
+    patients_clean |> select(subject_id, dod, gender, anchor_age),
+    by = "subject_id"
+  ) |>
   mutate(
-    # Days from admission to death (NA if patient did not die)
-    days_to_death   = as.numeric(difftime(dod, admittime, units = "days")),
-    # 30-day mortality flag
+    days_to_death = as.numeric(difftime(dod, admittime, units = "days")),
     mortality_30day = case_when(
       !is.na(days_to_death) & days_to_death >= 0 & days_to_death <= 30 ~ 1L,
       TRUE ~ 0L
     )
   )
 
-# Sanity check
 admissions_mortality |>
   count(mortality_30day) |>
   mutate(pct = round(100 * n / sum(n), 1)) |>
-  gt() |>
-  cols_label(mortality_30day = "30-Day Mortality", n = "Count", pct = "Percent (%)")
+  gt()
+
 ```
 
-## 2.4 Prescriptions Table
 
-The prescriptions table contains one row per medication order. Key cleaning steps: standardise drug names, remove obvious duplicates, drop rows with missing drug names.
-
+4. Prescriptions Table
 ```{r}
 prescriptions_clean <- prescriptions |>
-  select(subject_id, hadm_id, drug, drug_type, starttime, stoptime,
-         route, dose_val_rx, dose_unit_rx) |>
-  # Drop rows with no drug name
+  select(subject_id, hadm_id, drug, dose_val_rx, dose_unit_rx) |>
   filter(!is.na(drug), drug != "") |>
   mutate(
-    # Standardise drug names: uppercase, strip extra whitespace
-    drug_std = str_squish(str_to_upper(drug)),
-    # Parse dates
-    starttime = ymd_hms(starttime),
-    stoptime  = ymd_hms(stoptime)
+    drug_std = str_squish(str_to_upper(drug))
   )
 
 cat("Prescriptions after cleaning:", nrow(prescriptions_clean), "\n")
 cat("Unique drugs:", n_distinct(prescriptions_clean$drug_std), "\n")
+
 ```
 
-### Assign Broad Medication Classes
 
-To enable group-level comparisons, we assign each drug to a broad class using keyword matching. We can always append or remove categories as we see fit.
+5. Assign Medication Classes
 
-Note: This next cell usually takes a few minutes to run.
 ```{r}
-# Keyword-to-class mapping
 med_class_map <- tribble(
-  ~pattern,               ~med_class,
-  "ASPIRIN",              "Antiplatelet",
-  "CLOPIDOGREL",          "Antiplatelet",
-  "HEPARIN",              "Anticoagulant",
-  "WARFARIN",             "Anticoagulant",
-  "ENOXAPARIN",           "Anticoagulant",
-  "METOPROLOL",           "Beta-Blocker",
-  "CARVEDILOL",           "Beta-Blocker",
-  "ATENOLOL",             "Beta-Blocker",
-  "LISINOPRIL",           "ACE Inhibitor",
-  "ENALAPRIL",            "ACE Inhibitor",
-  "CAPTOPRIL",            "ACE Inhibitor",
-  "AMLODIPINE",           "Calcium Channel Blocker",
-  "DILTIAZEM",            "Calcium Channel Blocker",
-  "FUROSEMIDE",           "Diuretic",
-  "SPIRONOLACTONE",       "Diuretic",
-  "VANCOMYCIN",           "Antibiotic",
-  "PIPERACILLIN",         "Antibiotic",
-  "CEFAZOLIN",            "Antibiotic",
-  "METRONIDAZOLE",        "Antibiotic",
-  "CIPROFLOXACIN",        "Antibiotic",
-  "INSULIN",              "Insulin",
-  "MORPHINE",             "Opioid",
-  "FENTANYL",             "Opioid",
-  "HYDROMORPHONE",        "Opioid",
-  "OXYCODONE",            "Opioid",
-  "NOREPINEPHRINE",       "Vasopressor",
-  "VASOPRESSIN",          "Vasopressor",
-  "DOPAMINE",             "Vasopressor",
-  "EPINEPHRINE",          "Vasopressor",
-  "PROPOFOL",             "Sedative",
-  "MIDAZOLAM",            "Sedative",
-  "LORAZEPAM",            "Sedative",
-  "DEXAMETHASONE",        "Corticosteroid",
-  "PREDNISONE",           "Corticosteroid",
-  "METHYLPREDNISOLONE",   "Corticosteroid",
-  "ATORVASTATIN",         "Statin",
-  "SIMVASTATIN",          "Statin",
-  "ROSUVASTATIN",         "Statin"
+  ~pattern, ~med_class,
+  "ASPIRIN","Antiplatelet",
+  "HEPARIN","Anticoagulant",
+  "INSULIN","Insulin",
+  "FUROSEMIDE","Diuretic",
+  "LISINOPRIL","ACE Inhibitor",
+  "ATORVASTATIN","Statin"
 )
 
-# Assign class by checking if drug name contains any keyword
-assign_class <- function(drug_name) {
-  for (i in seq_len(nrow(med_class_map))) {
-    if (str_detect(drug_name, fixed(med_class_map$pattern[i]))) {
-      return(med_class_map$med_class[i])
-    }
-  }
-  return("Other")
+assign_class <- function(drug_name){
+
+  match <- med_class_map$med_class[
+    str_detect(drug_name, med_class_map$pattern)
+  ]
+
+  if(length(match) > 0) match[1] else "Other"
+
 }
 
 prescriptions_clean <- prescriptions_clean |>
   mutate(med_class = map_chr(drug_std, assign_class))
 
-# Class distribution
 prescriptions_clean |>
   count(med_class, sort = TRUE) |>
-  filter(med_class != "Other") |>
-  gt() |>
-  cols_label(med_class = "Medication Class", n = "Prescription Count")
+  gt()
+
 ```
 
 
-# 3. Data Wrangling: Build Analysis Dataset
-
-## 3.1 Admission-Level Medication Summary
-
-For each admission, we create binary flags indicating whether the patient
-received each medication class during their stay.
+6. Build Admission Medication Flags
 
 ```{r}
-#| label: admission-meds
-
-# One row per admission × med_class
 admission_med_flags <- prescriptions_clean |>
   filter(med_class != "Other") |>
   distinct(hadm_id, med_class) |>
   mutate(received = 1L) |>
-  pivot_wider(names_from = med_class, values_from = received,
-              values_fill = 0L) |>
+  pivot_wider(
+    names_from = med_class,
+    values_from = received,
+    values_fill = 0L
+  ) |>
   clean_names()
 
-cat("Admissions with at least one classified medication:", nrow(admission_med_flags), "\n")
+cat("Admissions with classified meds:", nrow(admission_med_flags))
+
 ```
 
-## 3.2 Final Analytic Dataset
 
-This section takes the cleaned mortality data and the cleaned medication data, merges them into one table, trims it down to only what's needed, and saves it. Everything after this chunk is just analysis on that one clean file.
+7. Final Analytic Dataset
+
 ```{r}
-
 analysis_df <- admissions_mortality |>
   inner_join(admission_med_flags, by = "hadm_id") |>
-  # Compute age at admission (anchor_age is age at anchor_year)
   mutate(
     age_at_admission = anchor_age,
-    age_group = cut(age_at_admission,
-                    breaks = c(0, 40, 55, 65, 75, Inf),
-                    labels = c("<40", "40–54", "55–64", "65–74", "75+"),
-                    right  = FALSE)
+    age_group = cut(
+      age_at_admission,
+      breaks = c(0,40,55,65,75,Inf),
+      labels = c("<40","40–54","55–64","65–74","75+"),
+      right = FALSE
+    )
   ) |>
-  # Keep only relevant columns
-  select(subject_id, hadm_id, admittime, dischtime, los_days,
-         gender, age_at_admission, age_group, race,
-         mortality_30day, days_to_death,
-         any_of(tolower(unique(med_class_map$med_class)) |> str_replace_all(" ", "_")))
+  select(
+    subject_id,
+    hadm_id,
+    admittime,
+    dischtime,
+    los_days,
+    gender,
+    age_at_admission,
+    age_group,
+    race,
+    mortality_30day,
+    days_to_death,
+    everything()
+  )
 
-cat("Final analytic dataset:", nrow(analysis_df), "admissions,",
-    ncol(analysis_df), "columns\n")
+cat("Final analytic dataset:", nrow(analysis_df), "rows")
 
+write_csv(analysis_df,"data/processed-data/analysis_dataset.csv"
+)
 
-# Save cleaned dataset
-write_csv(analysis_df, "data/processed-data/analysis_dataset.csv")
 ```
