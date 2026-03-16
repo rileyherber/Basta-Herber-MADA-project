@@ -131,6 +131,14 @@ readRDS(here("results", "tables", "mortality_by_gender.rds")) |>
   knitr::kable()
 ```
 
+
+```{r}
+#| label: fig-med-frequency
+#| fig-cap: "Medication Class Use"
+knitr::include_graphics(here("results", "figures", "perscriptoin-frequency.png"))
+
+```
+
 @fig-med-frequency shows hows that many particpants used cardiovascular and anticoagulations medicine. The highest used medications were anticoagulants and opioids.
 
 ```{r}
@@ -150,7 +158,7 @@ readRDS(here("results", "tables", "medication_mortality_summary.rds")) |>
   knitr::kable()
 ```
 
-tbl-med-mortality-summary shows mortality rates were higher with patients taking vasopressors, sedatives, and diruetics; this could be because the severity of their illness.
+@tbl-med-mortality-summary shows mortality rates were higher with patients taking vasopressors, sedatives, and diruetics; this could be because the severity of their illness.
 
 ```{r}
 #| label: fig-polypharmacy-freq
