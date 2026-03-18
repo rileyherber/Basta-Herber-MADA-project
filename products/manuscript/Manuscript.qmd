@@ -2,7 +2,7 @@
 title: "How Medications and Medication Regimens relate to Patient Mortality"
 author: "Rebecca Basta and Riley Herber"
 format:
-  docx:
+  html:
     toc: true
     toc-depth: 3
     number-sections: true
@@ -11,11 +11,6 @@ format:
 bibliography: ../../assets/dataanalysis-references.bib
 csl: ../../assets/american-journal-of-epidemiology.csl
 ---
-
-The structure below is one possible setup for a manuscript stemming from a data analysis project. It loosely follows the structure of a standard scientific manuscript. Adjust as needed. You don't need to have exactly these sections, but the content covering those sections should be addressed.
-
-This uses [MS Word as output format](https://quarto.org/docs/output-formats/ms-word.html). See [the Quarto documentation](https://quarto.org/) for instructions on how to use other formats.
-
 
 ```{r, echo=FALSE, message=FALSE}
 # load a few R packages
@@ -221,33 +216,279 @@ readRDS(here("results", "tables", "medication_mortality_summary.rds")) |>
 @tbl-med-mortality-summary presents the underlying counts behind the unadjusted mortality comparisons. Total admissions are roughly balanced between received and not received groups within each medication class, ranging from approximately 5,900 to 6,800 patients per group, reflecting the near-even prescription rates shown in the earlier figure. Consistent with the previous figure, insulin and ACE inhibitors are the only two classes where recipients had lower mortality rates than non-recipients, with insulin showing the starkest difference (0.00045 vs. 0.00166) and ACE inhibitors showing a more modest gap (0.00076 vs. 0.00130). For anticoagulants, diuretics, and antiplatelets, recipients had notably higher mortality rates than non-recipients. Statins showed the smallest difference between groups, with nearly identical rates regardless of receipt status (0.00104 vs. 0.00100).
 
 
-## Basic statistical analysis
 
-_To get some further insight into your data, if reasonable you could compute simple statistics (e.g. simple models with 1 predictor) to look for associations between your outcome(s) and each individual predictor variable. Though note that unless you pre-specified the outcome and main exposure, any "p<0.05 means statistical significance" interpretation is not valid._
-
-
-@fig-result shows a scatterplot figure produced by one of the R scripts.
+To complement the descriptive findings, a series of simple single-predictor logistic regression models were fit to quantify the unadjusted association between each exposure of interest and 30-day mortality. For each of the six medication classes, a separate logistic regression model was fit with the binary medication receipt indicator as the sole predictor of 30-day mortality. This approach provides odds ratios (ORs) and 95% confidence intervals (CIs) that are more interpretable than raw rate differences alone. In addition, logistic regression models were fit for age (continuous) and sex to characterize their individual unadjusted associations with the outcome. Finally, polypharmacy count (number of medication classes received) was modeled as a continuous predictor to formally test the trend observed in the descriptive analysis. All models were fit using the `glm()` function in R with a binomial family and logit link. Given the highly imbalanced outcome (approximately 0.1% mortality), results should be interpreted cautiously and no p-value threshold is used to designate statistical significance.
 
 ```{r}
-#| label: fig-result
-#| fig-cap: "Height and weight stratified by gender."
-#| echo: FALSE
-#knitr::include_graphics(here("results","figures","height-weight-stratified.png"))
+#| label: tbl-basic-logreg
+#| tbl-cap: "Unadjusted odds ratios (95% CI) from single-predictor logistic regression models for 30-day mortality."
+#| echo: true
+#| warning: false
+#| message: false
+
+library(here)
+library(dplyr)
+library(broom)
+library(knitr)
+
+# Load and prepare the analytic dataset
+admissions_clean <- read.csv(here("data", "processed-data", "analysis_dataset.csv")) |>
+  rename(
+    age               = age_at_admission,
+    med_anticoagulant = anticoagulant,
+    med_statin        = statin,
+    med_insulin       = insulin,
+    med_antiplatelet  = antiplatelet,
+    med_diuretic      = diuretic,
+    med_ace_inhibitor = ace_inhibitor
+  ) |>
+  mutate(
+    n_med_classes = med_anticoagulant + med_statin + med_insulin +
+                    med_antiplatelet + med_diuretic + med_ace_inhibitor
+  )
+
+# Define predictors to loop over
+predictors <- c(
+  "med_anticoagulant", "med_statin", "med_insulin",
+  "med_antiplatelet", "med_diuretic", "med_ace_inhibitor",
+  "age", "gender", "n_med_classes"
+)
+
+# Fit one logistic regression per predictor and extract tidy results
+basic_results <- lapply(predictors, function(pred) {
+  formula <- as.formula(paste("mortality_30day ~", pred))
+  fit <- glm(formula, data = admissions_clean, family = binomial(link = "logit"))
+  tidy(fit, exponentiate = TRUE, conf.int = TRUE) |>
+    filter(term != "(Intercept)") |>
+    mutate(predictor = pred)
+}) |>
+  bind_rows() |>
+  select(Predictor = predictor, Term = term,
+         OR = estimate, `95% CI Lower` = conf.low,
+         `95% CI Upper` = conf.high, `p-value` = p.value) |>
+  mutate(across(c(OR, `95% CI Lower`, `95% CI Upper`), \(x) round(x, 3)),
+         `p-value` = signif(`p-value`, 3))
+
+# Save and display
+saveRDS(basic_results, here("results", "tables", "basic_logreg_results.rds"))
+kable(basic_results)
 ```
+
+```{r}
+#| label: fig-basic-logreg-forest
+#| fig-cap: "Forest plot of unadjusted odds ratios (95% CI) for 30-day mortality by predictor. ORs greater than 1 indicate higher odds of mortality; ORs less than 1 indicate lower odds. The dashed vertical line marks the null (OR = 1)."
+#| echo: true
+#| warning: false
+#| message: false
+
+library(here)
+library(dplyr)
+library(broom)
+library(ggplot2)
+
+# Load and prepare the analytic dataset
+admissions_clean <- read.csv(here("data", "processed-data", "analysis_dataset.csv")) |>
+  rename(
+    age               = age_at_admission,
+    med_anticoagulant = anticoagulant,
+    med_statin        = statin,
+    med_insulin       = insulin,
+    med_antiplatelet  = antiplatelet,
+    med_diuretic      = diuretic,
+    med_ace_inhibitor = ace_inhibitor
+  ) |>
+  mutate(
+    n_med_classes = med_anticoagulant + med_statin + med_insulin +
+                    med_antiplatelet + med_diuretic + med_ace_inhibitor
+  )
+
+predictors <- c(
+  "med_anticoagulant", "med_statin", "med_insulin",
+  "med_antiplatelet", "med_diuretic", "med_ace_inhibitor",
+  "age", "gender", "n_med_classes"
+)
+
+basic_results <- lapply(predictors, function(pred) {
+  formula <- as.formula(paste("mortality_30day ~", pred))
+  fit <- glm(formula, data = admissions_clean, family = binomial(link = "logit"))
+  tidy(fit, exponentiate = TRUE, conf.int = TRUE) |>
+    filter(term != "(Intercept)") |>
+    mutate(predictor = pred)
+}) |>
+  bind_rows() |>
+  select(Predictor = predictor, Term = term,
+         OR = estimate, `95% CI Lower` = conf.low,
+         `95% CI Upper` = conf.high, `p-value` = p.value) |>
+  mutate(across(c(OR, `95% CI Lower`, `95% CI Upper`), \(x) round(x, 3)),
+         `p-value` = signif(`p-value`, 3))
+
+basic_results |>
+  ggplot(aes(x = OR, y = reorder(Term, OR))) +
+  geom_point(size = 3, color = "steelblue") +
+  geom_errorbarh(aes(xmin = `95% CI Lower`, xmax = `95% CI Upper`),
+                 height = 0.2, color = "steelblue") +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "gray40") +
+  scale_x_log10() +
+  labs(
+    x = "Odds Ratio (log scale)",
+    y = NULL,
+    title = "Unadjusted Odds Ratios for 30-Day Mortality"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(panel.grid.minor = element_blank())
+
+ggsave(here("results", "figures", "basic_logreg_forest.png"),
+       width = 7, height = 5, dpi = 300)
+```
+
+The unadjusted logistic regression results in @tbl-basic-logreg and @fig-basic-logreg-forest are broadly consistent with the descriptive analysis. Insulin receipt and ACE inhibitor receipt are associated with odds ratios below 1.0, suggesting lower unadjusted odds of 30-day mortality among recipients, while anticoagulants, diuretics, antiplatelets, and statins are associated with ORs above 1.0. Age shows a positive association with mortality, as expected, and the polypharmacy count captures the non-linear pattern observed descriptively. Wide confidence intervals throughout reflect the small number of mortality events and reinforce that these estimates are unstable. These unadjusted models are exploratory and should not be interpreted causally.
 
 
 ## Full analysis
 
-_Use one or several suitable statistical/machine learning methods to analyze your data and to produce meaningful figures, tables, etc. This might again be code that is best placed in one or several separate R scripts that need to be well documented. You want the code to produce figures and data ready for display as tables, and save those. Then you load them here._
-
+To build on the single-predictor models, a multivariable logistic regression was fit to assess the joint association of all six medication classes with 30-day mortality, adjusting simultaneously for age and sex. This model allows each medication class coefficient to be interpreted while holding the other predictors constant, partially addressing the confounding by indication that complicates the unadjusted comparisons. Polypharmacy count was also included as a separate model to test whether the inverted U-shaped association with mortality persists after adjusting for age and sex. Model performance was evaluated using the area under the receiver operating characteristic curve (AUC-ROC), which is more informative than accuracy for highly imbalanced binary outcomes. Given that only 13 mortality events are present in the synthetic dataset, the multivariable model is severely underpowered—with six medication predictors plus age and sex, the number of events per variable falls well below the recommended threshold of 10. Results should therefore be interpreted as a methodological demonstration of the analytic approach rather than as stable clinical estimates.
 
 ```{r}
-#| label: tbl-resulttable2
-#| tbl-cap: "Linear model fit table."
-#| echo: FALSE
-#resulttable2 <- readRDS(here("results","tables","resulttable2.rds"))
-#knitr::kable(resulttable2)
+#| label: tbl-multivariable
+#| tbl-cap: "Adjusted odds ratios (95% CI) from multivariable logistic regression model for 30-day mortality, including all six medication class indicators, age, and sex as predictors."
+#| echo: true
+#| warning: false
+#| message: false
+
+library(here)
+library(dplyr)
+library(broom)
+library(knitr)
+
+# Load and prepare the analytic dataset
+admissions_clean <- read.csv(here("data", "processed-data", "analysis_dataset.csv")) |>
+  rename(
+    age               = age_at_admission,
+    med_anticoagulant = anticoagulant,
+    med_statin        = statin,
+    med_insulin       = insulin,
+    med_antiplatelet  = antiplatelet,
+    med_diuretic      = diuretic,
+    med_ace_inhibitor = ace_inhibitor
+  ) |>
+  mutate(
+    n_med_classes = med_anticoagulant + med_statin + med_insulin +
+                    med_antiplatelet + med_diuretic + med_ace_inhibitor
+  )
+
+# Multivariable model: all six medication classes + age + sex
+mv_model <- glm(
+  mortality_30day ~ med_anticoagulant + med_statin + med_insulin +
+    med_antiplatelet + med_diuretic + med_ace_inhibitor +
+    age + gender,
+  data = admissions_clean,
+  family = binomial(link = "logit")
+)
+
+mv_results <- tidy(mv_model, exponentiate = TRUE, conf.int = TRUE) |>
+  filter(term != "(Intercept)") |>
+  select(Term = term,
+         `Adjusted OR` = estimate,
+         `95% CI Lower` = conf.low,
+         `95% CI Upper` = conf.high,
+         `p-value` = p.value) |>
+  mutate(across(c(`Adjusted OR`, `95% CI Lower`, `95% CI Upper`), \(x) round(x, 3)),
+         `p-value` = signif(`p-value`, 3))
+
+saveRDS(mv_results, here("results", "tables", "multivariable_results.rds"))
+kable(mv_results)
 ```
+
+```{r}
+#| label: fig-roc
+#| fig-cap: "Receiver operating characteristic (ROC) curve for the multivariable logistic regression model predicting 30-day mortality. The AUC reflects the model's ability to discriminate between survivors and non-survivors."
+#| echo: true
+#| warning: false
+#| message: false
+
+library(pROC)
+library(ggplot2)
+
+# Generate predicted probabilities (mv_model and admissions_clean carried over from tbl-multivariable)
+admissions_clean$pred_prob <- predict(mv_model, type = "response")
+
+# Compute ROC
+roc_obj <- roc(admissions_clean$mortality_30day, admissions_clean$pred_prob,
+               quiet = TRUE)
+auc_val <- round(auc(roc_obj), 3)
+
+# Plot
+roc_df <- data.frame(
+  specificity = rev(roc_obj$specificities),
+  sensitivity = rev(roc_obj$sensitivities)
+)
+
+ggplot(roc_df, aes(x = 1 - specificity, y = sensitivity)) +
+  geom_line(color = "steelblue", linewidth = 1) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray50") +
+  annotate("text", x = 0.7, y = 0.15,
+           label = paste0("AUC = ", auc_val), size = 4.5) +
+  labs(
+    x = "1 - Specificity (False Positive Rate)",
+    y = "Sensitivity (True Positive Rate)",
+    title = "ROC Curve: Multivariable Logistic Regression"
+  ) +
+  theme_minimal(base_size = 12)
+
+ggsave(here("results", "figures", "roc_curve.png"),
+       width = 6, height = 5, dpi = 300)
+```
+
+```{r}
+#| label: tbl-polypharmacy-adjusted
+#| tbl-cap: "Adjusted odds ratios from logistic regression of 30-day mortality on polypharmacy count, adjusting for age and sex."
+#| echo: true
+#| warning: false
+#| message: false
+
+library(here)
+library(dplyr)
+library(broom)
+library(knitr)
+
+# Load and prepare the analytic dataset
+admissions_clean <- read.csv(here("data", "processed-data", "analysis_dataset.csv")) |>
+  rename(
+    age               = age_at_admission,
+    med_anticoagulant = anticoagulant,
+    med_statin        = statin,
+    med_insulin       = insulin,
+    med_antiplatelet  = antiplatelet,
+    med_diuretic      = diuretic,
+    med_ace_inhibitor = ace_inhibitor
+  ) |>
+  mutate(
+    n_med_classes = med_anticoagulant + med_statin + med_insulin +
+                    med_antiplatelet + med_diuretic + med_ace_inhibitor
+  )
+
+poly_model <- glm(
+  mortality_30day ~ n_med_classes + age + gender,
+  data = admissions_clean,
+  family = binomial(link = "logit")
+)
+
+poly_results <- tidy(poly_model, exponentiate = TRUE, conf.int = TRUE) |>
+  filter(term != "(Intercept)") |>
+  select(Term = term,
+         `Adjusted OR` = estimate,
+         `95% CI Lower` = conf.low,
+         `95% CI Upper` = conf.high,
+         `p-value` = p.value) |>
+  mutate(across(c(`Adjusted OR`, `95% CI Lower`, `95% CI Upper`), \(x) round(x, 3)),
+         `p-value` = signif(`p-value`, 3))
+
+saveRDS(poly_results, here("results", "tables", "polypharmacy_adjusted.rds"))
+kable(poly_results)
+```
+
+The multivariable model results in @tbl-multivariable provide adjusted estimates for each medication class after accounting for the others and for age and sex. Comparing these adjusted ORs to the unadjusted ORs from the basic analysis allows informal assessment of how much confounding is present: predictors whose ORs shift substantially toward the null in the adjusted model are likely to have been confounded in the unadjusted analysis. The ROC curve in @fig-roc and its associated AUC summarize overall model discrimination. An AUC near 0.5 would indicate the model performs no better than chance, while values approaching 1.0 indicate strong discrimination; given the severe outcome imbalance and small event count, a modest AUC is expected. The adjusted polypharmacy model in @tbl-polypharmacy-adjusted tests whether the association between number of medication classes and mortality persists after controlling for age and sex. If the polypharmacy OR attenuates substantially in the adjusted model, this would suggest that the unadjusted trend was partly driven by age or sex differences across polypharmacy groups rather than by medication burden itself. All results from this section should be interpreted as preliminary and methodologically illustrative given the constraints of the synthetic dataset.
+
 
 
 {{< pagebreak >}}
@@ -276,6 +517,3 @@ Note that this cited reference will show up at the end of the document, the refe
 {{< pagebreak >}}
 
 # References
-
-
-
