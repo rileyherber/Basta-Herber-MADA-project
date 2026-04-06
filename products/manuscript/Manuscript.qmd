@@ -151,35 +151,6 @@ knitr::include_graphics(here("results", "figures", "day-30-mortality.png"))
 In @fig-mortality, the vast majority of hospital admissions resulted in survival within 30 days. Only 13 admissions (approximately 0.1%) were associated with death within 30 days, while approximately 99.9% of admissions survived beyond 30 days. This highly imbalanced outcome distribution reflects the synthetic data generation process and indicates that mortality events are rare in the simulated cohort.
 
 ```{r}
-#| label: fig-age-distribution
-#| fig-cap: "Age distribution of hospital admissions stratified by 30-day mortality outcome."
-knitr::include_graphics(here("results", "figures", "age-distribution-mortality.png"))
-
-```
-
-@fig-age-distribution The age distribution of patients in the synthetic dataset is approximately bell-shaped, centered around middle-aged to older adults. Most admissions occur between approximately 40 and 80 years of age, with the highest concentration near ages 55–65. Because mortality events are rare in the dataset, the age distribution of patients who died is not clearly distinguishable from those who survived.
-
-```{r}
-#| label: fig-age-mortality
-#| fig-cap: "30-day mortality rate by age group"
-knitr::include_graphics(here("results", "figures", "mortality_by_age.png"))
-
-```
-
-@fig-age-mortality demonstrates that the 30-day mortality rate peaks at 0.2% for individuals in the 55–64 age group. For younger cohorts, specifically those under 40 and those between 40–54, the mortality rate remains constant at 0.1%.
-
-```{r}
-#| label: tbl-gender-mortality
-#| tbl-cap: "30-day mortality rate by gender"
-#| echo: false
-
-readRDS(here("results", "tables", "mortality_by_gender.rds")) |>
-  knitr::kable()
-```
-
-@tbl-gender-mortality shows that females had over double the number of mortality events than males in the 30 day time period.
-
-```{r}
 #| label: fig-med-frequency
 #| fig-cap: "Medication Class Usage Among Admitted Patients, showing the proportion of hospital admissions associated with six common medication classes."
 knitr::include_graphics(here("results", "figures", "perscriptoin-frequency.png"))
@@ -204,16 +175,6 @@ knitr::include_graphics(here("results", "figures", "polypharmacy-frequency.png")
 
 @fig-polypharmacy-freq displays a non-linear, inverted U-shaped relationship between polypharmacy and 30-day mortality. Mortality rises sharply from near 0% among patients receiving only one medication class to a peak of approximately 0.12% to 0.13% among those receiving three classes, then declines steadily through four and five classes before dropping back to near 0% among patients receiving all six classes. The point sizes indicate that the middle groups, particularly those receiving three to four medication classes, represent the largest share of admissions, lending more reliability to the estimates in that range. The near-zero mortality at both extremes is notable and warrants careful interpretation, as patients receiving very few or all six medication classes may represent highly distinct clinical subgroups, and the small sample sizes at those extremes make those estimates less stable. As with the previous figure, Further analysis would be necessary to determine whether the observed pattern reflects a true relationship between polypharmacy and mortality or is driven by differences in underlying patient characteristics across groups. 
 
-```{r}
-#| label: tbl-med-mortality-summary
-#| tb2-cap: " Unadjusted 30-day mortality rates by medication class and receipt status, including the number of admissions and observed deaths in each group."
-#| echo: false
-
-readRDS(here("results", "tables", "medication_mortality_summary.rds")) |>
-  knitr::kable()
-```
-
-@tbl-med-mortality-summary presents the underlying counts behind the unadjusted mortality comparisons. Total admissions are roughly balanced between received and not received groups within each medication class, ranging from approximately 5,900 to 6,800 patients per group, reflecting the near-even prescription rates shown in the earlier figure. Consistent with the previous figure, insulin and ACE inhibitors are the only two classes where recipients had lower mortality rates than non-recipients, with insulin showing the starkest difference (0.00045 vs. 0.00166) and ACE inhibitors showing a more modest gap (0.00076 vs. 0.00130). For anticoagulants, diuretics, and antiplatelets, recipients had notably higher mortality rates than non-recipients. Statins showed the smallest difference between groups, with nearly identical rates regardless of receipt status (0.00104 vs. 0.00100).
 
 
 
@@ -349,57 +310,6 @@ The unadjusted logistic regression results in @tbl-basic-logreg and @fig-basic-l
 To build on the single-predictor models, a multivariable logistic regression was fit to assess the joint association of all six medication classes with 30-day mortality, adjusting simultaneously for age and sex. This model allows each medication class coefficient to be interpreted while holding the other predictors constant, partially addressing the confounding by indication that complicates the unadjusted comparisons. Polypharmacy count was also included as a separate model to test whether the inverted U-shaped association with mortality persists after adjusting for age and sex. Model performance was evaluated using the area under the receiver operating characteristic curve (AUC-ROC), which is more informative than accuracy for highly imbalanced binary outcomes. Given that only 13 mortality events are present in the synthetic dataset, the multivariable model is severely underpowered—with six medication predictors plus age and sex, the number of events per variable falls well below the recommended threshold of 10. Results should therefore be interpreted as a methodological demonstration of the analytic approach rather than as stable clinical estimates.
 
 ```{r}
-#| label: tbl-multivariable
-#| tbl-cap: "Adjusted odds ratios (95% CI) from multivariable logistic regression model for 30-day mortality, including all six medication class indicators, age, and sex as predictors."
-#| echo: true
-#| warning: false
-#| message: false
-
-library(here)
-library(dplyr)
-library(broom)
-library(knitr)
-
-# Load and prepare the analytic dataset
-admissions_clean <- read.csv(here("data", "processed-data", "analysis_dataset.csv")) |>
-  rename(
-    age               = age_at_admission,
-    med_anticoagulant = anticoagulant,
-    med_statin        = statin,
-    med_insulin       = insulin,
-    med_antiplatelet  = antiplatelet,
-    med_diuretic      = diuretic,
-    med_ace_inhibitor = ace_inhibitor
-  ) |>
-  mutate(
-    n_med_classes = med_anticoagulant + med_statin + med_insulin +
-                    med_antiplatelet + med_diuretic + med_ace_inhibitor
-  )
-
-# Multivariable model: all six medication classes + age + sex
-mv_model <- glm(
-  mortality_30day ~ med_anticoagulant + med_statin + med_insulin +
-    med_antiplatelet + med_diuretic + med_ace_inhibitor +
-    age + gender,
-  data = admissions_clean,
-  family = binomial(link = "logit")
-)
-
-mv_results <- tidy(mv_model, exponentiate = TRUE, conf.int = TRUE) |>
-  filter(term != "(Intercept)") |>
-  select(Term = term,
-         `Adjusted OR` = estimate,
-         `95% CI Lower` = conf.low,
-         `95% CI Upper` = conf.high,
-         `p-value` = p.value) |>
-  mutate(across(c(`Adjusted OR`, `95% CI Lower`, `95% CI Upper`), \(x) round(x, 3)),
-         `p-value` = signif(`p-value`, 3))
-
-saveRDS(mv_results, here("results", "tables", "multivariable_results.rds"))
-kable(mv_results)
-```
-
-```{r}
 #| label: fig-roc
 #| fig-cap: "Receiver operating characteristic (ROC) curve for the multivariable logistic regression model predicting 30-day mortality. The AUC reflects the model's ability to discriminate between survivors and non-survivors."
 #| echo: true
@@ -408,6 +318,9 @@ kable(mv_results)
 
 library(pROC)
 library(ggplot2)
+mv_model <- glm(mortality_30day ~ med_anticoagulant + med_statin + med_insulin +
+                 med_antiplatelet + med_diuretic + med_ace_inhibitor + age + gender,
+                data = admissions_clean, family = binomial(link = "logit"))
 
 # Generate predicted probabilities (mv_model and admissions_clean carried over from tbl-multivariable)
 admissions_clean$pred_prob <- predict(mv_model, type = "response")
@@ -438,57 +351,6 @@ ggplot(roc_df, aes(x = 1 - specificity, y = sensitivity)) +
 ggsave(here("results", "figures", "roc_curve.png"),
        width = 6, height = 5, dpi = 300)
 ```
-
-```{r}
-#| label: tbl-polypharmacy-adjusted
-#| tbl-cap: "Adjusted odds ratios from logistic regression of 30-day mortality on polypharmacy count, adjusting for age and sex."
-#| echo: true
-#| warning: false
-#| message: false
-
-library(here)
-library(dplyr)
-library(broom)
-library(knitr)
-
-# Load and prepare the analytic dataset
-admissions_clean <- read.csv(here("data", "processed-data", "analysis_dataset.csv")) |>
-  rename(
-    age               = age_at_admission,
-    med_anticoagulant = anticoagulant,
-    med_statin        = statin,
-    med_insulin       = insulin,
-    med_antiplatelet  = antiplatelet,
-    med_diuretic      = diuretic,
-    med_ace_inhibitor = ace_inhibitor
-  ) |>
-  mutate(
-    n_med_classes = med_anticoagulant + med_statin + med_insulin +
-                    med_antiplatelet + med_diuretic + med_ace_inhibitor
-  )
-
-poly_model <- glm(
-  mortality_30day ~ n_med_classes + age + gender,
-  data = admissions_clean,
-  family = binomial(link = "logit")
-)
-
-poly_results <- tidy(poly_model, exponentiate = TRUE, conf.int = TRUE) |>
-  filter(term != "(Intercept)") |>
-  select(Term = term,
-         `Adjusted OR` = estimate,
-         `95% CI Lower` = conf.low,
-         `95% CI Upper` = conf.high,
-         `p-value` = p.value) |>
-  mutate(across(c(`Adjusted OR`, `95% CI Lower`, `95% CI Upper`), \(x) round(x, 3)),
-         `p-value` = signif(`p-value`, 3))
-
-saveRDS(poly_results, here("results", "tables", "polypharmacy_adjusted.rds"))
-kable(poly_results)
-```
-
-The multivariable model results in @tbl-multivariable provide adjusted estimates for each medication class after accounting for the others and for age and sex. Comparing these adjusted ORs to the unadjusted ORs from the basic analysis allows informal assessment of how much confounding is present: predictors whose ORs shift substantially toward the null in the adjusted model are likely to have been confounded in the unadjusted analysis. The ROC curve in @fig-roc and its associated AUC summarize overall model discrimination. An AUC near 0.5 would indicate the model performs no better than chance, while values approaching 1.0 indicate strong discrimination; given the severe outcome imbalance and small event count, a modest AUC is expected. The adjusted polypharmacy model in @tbl-polypharmacy-adjusted tests whether the association between number of medication classes and mortality persists after controlling for age and sex. If the polypharmacy OR attenuates substantially in the adjusted model, this would suggest that the unadjusted trend was partly driven by age or sex differences across polypharmacy groups rather than by medication burden itself. All results from this section should be interpreted as preliminary and methodologically illustrative given the constraints of the synthetic dataset.
-
 
 
 {{< pagebreak >}}
