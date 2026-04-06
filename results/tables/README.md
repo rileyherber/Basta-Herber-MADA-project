@@ -1,5 +1,4 @@
 # tables
 
-Folder for all tables (if you use R, often stored as Rds files)
+Folder for all tables.
 
-You can create further sub-folders if that makes sense.
