@@ -2,7 +2,6 @@
 This folder contains all data cleaning and wrangling scripts for the project.
 
 ## Files
-- `raw-synthetic-data.qmd` - creates a synthetic databases that resembles the MIMIC-IV CSV files
 - `mimic-processing.qmd` — loads the raw MIMIC-IV CSV files, cleans and merges 
   tables, computes 30-day mortality, assigns medication classes, and saves 
   the final analytic dataset.
@@ -18,7 +17,6 @@ Raw data files from `data/raw-data/`:
 ## Output
 - `data/processed-data/analysis_dataset.csv` — the final analytic dataset used 
   by all downstream scripts and the manuscript
-- `products\manuscript\Manuscript.html` - final manuscript with results and figures
 
 ## How to Run
   In order:
