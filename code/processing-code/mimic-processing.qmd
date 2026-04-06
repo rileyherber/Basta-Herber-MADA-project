@@ -31,17 +31,15 @@ Table	Description
 patients.csv	Demographics (gender, anchor_age, dod)
 admissions.csv	Admission/discharge times, race
 prescriptions.csv	Medication orders per hospital stay
-patients      <- read_csv("data/raw-data/patients_syn.csv", show_col_types = FALSE)
-admissions    <- read_csv("data/raw-data/admissions_syn.csv", show_col_types = FALSE)
-prescriptions <- read_csv("data/raw-data/prescriptions_syn.csv", show_col_types = FALSE)
+
 
 ```{r}
 # Optional sampling for speed
 set.seed(123)
 
-admissions <- admissions_syn
-prescriptions <- prescriptions_syn
-patients <- patients_syn
+admissions <- read_csv("../../data/raw-data/admissions_syn.csv", show_col_types = FALSE)
+prescriptions <- read_csv("../../data/raw-data/prescriptions_syn.csv", show_col_types = FALSE)
+patients <- read_csv("../../data/raw-data/patients_syn.csv", show_col_types = FALSE)
 
 
 sampled_ids <- admissions |>
@@ -212,7 +210,7 @@ analysis_df <- admissions_mortality |>
 
 cat("Final analytic dataset:", nrow(analysis_df), "rows")
 
-write_csv(analysis_df,"data/processed-data/analysis_dataset.csv"
+write_csv(analysis_df,"../../data/processed-data/analysis_dataset.csv"
 )
 
 ```

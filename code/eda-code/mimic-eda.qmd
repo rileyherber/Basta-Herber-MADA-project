@@ -16,7 +16,7 @@ library(here)
 
 ```{r}
 #| fig-cap: "Distribution of 30-day mortality in the analytic cohort"
-analysis_df <- read_csv("data/processed-data/analysis_dataset.csv", show_col_types = FALSE)
+analysis_df <- read_csv("../../data/processed-data/analysis_dataset.csv", show_col_types = FALSE)
 analysis_df |>
   mutate(Outcome = if_else(mortality_30day == 1, "Died (≤30 days)", "Survived")) |>
   count(Outcome) |>
@@ -31,7 +31,7 @@ analysis_df |>
        x = NULL, y = "Number of Admissions") +
   theme(plot.title = element_text(face = "bold"))
 
-ggsave("results/figures/day-30-mortality.png", 
+ggsave("../../results/figures/day-30-mortality.png",
        width = 8, height = 5, dpi = 300)
 ```
 
@@ -52,7 +52,7 @@ analysis_df |>
   labs(title = "Age Distribution by 30-Day Mortality",
        x = "Age at Admission (years)", y = "Count", fill = "Outcome")
 
-ggsave("results/figures/age-distribution-mortality.png", 
+ggsave("../../results/figures/age-distribution-mortality.png", 
        width = 8, height = 5, dpi = 300)
 ```
 
@@ -76,7 +76,7 @@ analysis_df |>
   scale_y_continuous(labels = scales::percent_format()) +
   labs(title = "30-Day Mortality Rate by Age Group",
        x = "Age Group", y = "Mortality Rate")
-ggsave("results/figures/mortality_by_age.png", 
+ggsave("../../results/figures/mortality_by_age.png", 
        width = 8, height = 5, dpi = 300)
 ```
 
@@ -179,7 +179,7 @@ analysis_df |>
   labs(title = "Medication Class Usage Among Admitted Patients",
        x = NULL, y = "Proportion of Admissions")
 
-ggsave("results/figures/perscriptoin-frequency.png", 
+ggsave("../../results/figures/perscriptoin-frequency.png", 
        width = 8, height = 5, dpi = 300)
 ```
 
@@ -214,7 +214,7 @@ med_mortality |>
        x = NULL, y = "30-Day Mortality Rate", fill = NULL) +
   theme(legend.position = "top")
 
-ggsave("results/figures/unadjusted-perscriptoin-frequency.png", 
+ggsave("../../results/figures/unadjusted-perscriptoin-frequency.png", 
        width = 8, height = 5, dpi = 300)
 ```
 
@@ -266,7 +266,7 @@ analysis_df |>
        x = "Number of Medication Classes Received",
        y = "30-Day Mortality Rate")
 
-ggsave("results/figures/polypharmacy-frequency.png", 
+ggsave("../../results/figures/polypharmacy-frequency.png", 
        width = 8, height = 5, dpi = 300)
 ```
 

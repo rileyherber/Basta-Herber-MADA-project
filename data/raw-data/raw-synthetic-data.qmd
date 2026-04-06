@@ -4,6 +4,7 @@ library(dplyr)
 library(purrr)
 
 set.seed(42)
+n_patients <- 8000
 ```
 
 ```{r}
@@ -105,8 +106,8 @@ admissions_syn <- admissions_syn %>%
 ```
 
 ```{r}
-write.csv(patients_syn,     "data/raw-data/patients_syn.csv",     row.names = FALSE)
-write.csv(admissions_syn,   "data/raw-data/admissions_syn.csv",   row.names = FALSE)
-write.csv(prescriptions_syn,"data/raw-data/prescriptions_syn.csv",row.names = FALSE)
+write.csv(patients_syn,"patients_syn.csv", row.names = FALSE)
+write.csv(admissions_syn,"admissions_syn.csv", row.names = FALSE)
+write.csv(prescriptions_syn,"prescriptions_syn.csv",row.names = FALSE)
 ```
 
