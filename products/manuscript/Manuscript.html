@@ -2302,7 +2302,7 @@ vertical-align: -.125em;
 <section id="summaryabstract" class="level1" data-number="1">
 <h1 data-number="1"><span class="header-section-number">1</span> Summary/Abstract</h1>
 <p><em>Write a summary of your project.</em></p>
-<p><em>It is recommended to use a structured abstract with Background/Methods/Results/Discussion sections.</em></p>
+<p><em>It is recommended to use a structured abstract with Background/Methods/Results/Discussion sections.</em> ( Comming Soon)</p>
 <div style="page-break-after: always;"></div>
 </section>
 <section id="introduction" class="level1" data-number="2">
@@ -2310,7 +2310,8 @@ vertical-align: -.125em;
 <p>This information is important because it can help healthcare providers better understand the effects of commonly prescribed medications on patient survival. Identifying medications that are associated with improved or worsened outcomes may guide clinical decision-making, optimize treatment strategies, and ultimately improve patient care and safety.</p>
 <section id="general-background-information" class="level2" data-number="2.1">
 <h2 data-number="2.1" class="anchored" data-anchor-id="general-background-information"><span class="header-section-number">2.1</span> General Background Information</h2>
-<p><em>Provide enough background on your topic that others can understand the why and how of your analysis</em></p>
+<p>Medications are a cornerstone of modern clinical care, particularly in hospitalized and critically ill populations where patients frequently receive multiple therapies simultaneously. This concurrent use of multiple medications, commonly referred to as polypharmacy, has become increasingly prevalent, especially among older adults and patients with chronic or complex conditions. While necessary for managing multiple comorbidities, polypharmacy introduces risks such as drug–drug interactions, adverse effects, and challenges in clinical decision-making. Large-scale epidemiological studies have demonstrated that polypharmacy is not only common but also associated with higher mortality, hospitalization, and healthcare utilization. A nationwide cohort study published in Nature, analyzed over three million older patients and found a clear relationship between the number of medications one was taking and adverse outcomes. (Chang et al., 2020)<span class="citation" data-cites="chang2020">(<a href="#ref-chang2020" role="doc-biblioref">1</a>)</span> Another large-scale observation study looked at whether 30-day prescriptions or 90-day prescriptions were better for patient adherence after a heart attack. They found that those given the 90-day prescription are more likely to stay on their medication long-term compared to those given the 30-day prescription. There was about a 10% increase in adherence for statins, beta blockers, ACE inhibitors, and P2Y12 inhibitors. The authors suggested that this increase could be due to less pharmacy visits and a lower likelihood of patients missing a refill. (Rymer et al., 2020)<span class="citation" data-cites="rymer2020">(<a href="#ref-rymer2020" role="doc-biblioref">2</a>)</span> Observational data from electronic health records (EHRs), such as MIMIC-IV, provide a valuable platform to explore these relationships. These datasets include detailed patient demographics, medication prescriptions, and clinical outcomes, allowing researchers to examine patterns across large, diverse patient populations. However, interpreting these data requires caution: unadjusted associations between medication use and mortality may reflect underlying patient severity rather than direct drug effects.</p>
+<p>In this study, we examine how individual medication classes, combinations of medications, and overall medication burden relate to 30-day mortality using a synthetic dataset derived from MIMIC-IV. By analyzing both class-specific and polypharmacy patterns, this work aims to provide insights into treatment-outcome relationships while highlighting the methodological challenges inherent in observational clinical research.</p>
 </section>
 <section id="description-of-data-and-data-source" class="level2" data-number="2.2">
 <h2 data-number="2.2" class="anchored" data-anchor-id="description-of-data-and-data-source"><span class="header-section-number">2.2</span> Description of data and data source</h2>
@@ -2723,19 +2724,17 @@ Figure 6: Receiver operating characteristic (ROC) curve for the multivariable l
 <h1 data-number="5"><span class="header-section-number">5</span> Discussion</h1>
 <section id="summary-and-interpretation" class="level2" data-number="5.1">
 <h2 data-number="5.1" class="anchored" data-anchor-id="summary-and-interpretation"><span class="header-section-number">5.1</span> Summary and Interpretation</h2>
-<p><em>Summarize what you did, what you found and what it means.</em></p>
+<p>Our study explored the associations between individual medication classes, polypharmacy, and 30-day mortality in a synthetic dataset modeled after MIMIC-IV. Descriptive analyses revealed that patients receiving insulin or ACE inhibitors had lower unadjusted mortality rates, whereas patients receiving anticoagulants, diuretics, antiplatelets, or statins had higher unadjusted mortality. Polypharmacy displayed a non-linear, inverted U-shaped relationship with mortality, with intermediate levels of medication use corresponding to the highest observed risk.</p>
+<p>These findings are consistent with prior research. Large-scale cohort studies, including Scientific Reports 2020, demonstrate that increasing numbers of medications are associated with progressively higher risks of mortality, but that the impact varies by drug type and patient context. (Chang et al., 2020)<span class="citation" data-cites="chang2020">(<a href="#ref-chang2020" role="doc-biblioref">1</a>)</span> Similarly, JAHA 2020 highlights that while polypharmacy and complex medication regimens are linked to increased mortality, these associations are largely influenced by underlying patient severity and comorbidities. (Rymer et al., 2020)<span class="citation" data-cites="rymer2020">(<a href="#ref-rymer2020" role="doc-biblioref">2</a>)</span> Patients receiving anticoagulants, statins, or diuretics may have more severe disease, predisposing them to higher mortality, while patients on insulin or ACE inhibitors may have more stable or controlled conditions.</p>
+<p>The observed differences among medication classes in our study may reflect clinical indications and different patients characteristics, rather than causal treatment effects. A prior study published in Circulation, yielded results that showed treatment alone didn’t decrease mortality rates, but it also depended on the patient’s characteristics, such as age, sex, shock, history of condition, etc. (Lee et al., 1995)<span class="citation" data-cites="lee1995">(<a href="#ref-lee1995" role="doc-biblioref">3</a>)</span></p>
 </section>
 <section id="strengths-and-limitations" class="level2" data-number="5.2">
 <h2 data-number="5.2" class="anchored" data-anchor-id="strengths-and-limitations"><span class="header-section-number">5.2</span> Strengths and Limitations</h2>
-<p><em>Discuss what you perceive as strengths and limitations of your analysis.</em></p>
+<p>This project was based on a synthetic database created to reflect the trends seen in the real patient data of the MIMIC-IV database. And while the synthetic dataset allows for ease of analysis and a more structured and reproducible workflow, it does run the risk of losing certain trends and not fully encapsulating the variability and complexity of the real-world data patterns. In our dataset, the mortality events were very low, which could result in unstable estimates and wide confidence intervals. Our analyses are mostly unadjusted or minimally adjusted, making them highly susceptible to confounding variables.</p>
 </section>
 <section id="conclusions" class="level2" data-number="5.3">
 <h2 data-number="5.3" class="anchored" data-anchor-id="conclusions"><span class="header-section-number">5.3</span> Conclusions</h2>
-<p><em>What are the main take-home messages?</em></p>
-<p><em>Include citations in your Qmd file using BibTeX, the list of references will automatically be placed at the end</em></p>
-<p>This paper <span class="citation" data-cites="leek2015">(<a href="#ref-leek2015" role="doc-biblioref">1</a>)</span> discusses types of analyses.</p>
-<p>These papers <span class="citation" data-cites="mckay2020 mckay2020a">(<a href="#ref-mckay2020" role="doc-biblioref">2</a>,<a href="#ref-mckay2020a" role="doc-biblioref">3</a>)</span> are good examples of papers published using a fully reproducible setup similar to the one shown in this template.</p>
-<p>Note that this cited reference will show up at the end of the document, the reference formatting is determined by the CSL file specified in the YAML header. Many more style files for almost any journal <a href="https://www.zotero.org/styles">are available</a>. You also specify the location of your BibTeX reference file in the YAML. You can call your reference file anything you like.</p>
+<p>Our findings illustrate that individual medication classes and overall medication burden show complex relationships with 30-day mortality. Consistent with previous studies, higher medication counts and certain drug classes are associated with increased mortality, but these associations are likely influenced by patient severity and patient variability rather than strictly medication use.</p>
 <div style="page-break-after: always;"></div>
 </section>
 </section>
@@ -2745,14 +2744,14 @@ Figure 6: Receiver operating characteristic (ROC) curve for the multivariable l
 </section>
 
 <div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">6 References</h2><div id="refs" class="references csl-bib-body" role="list">
-<div id="ref-leek2015" class="csl-entry" role="listitem">
-<div class="csl-left-margin">1. </div><div class="csl-right-inline">Leek JT, Peng RD. <a href="https://doi.org/10.1126/science.aaa6146">Statistics. <span>What</span> is the question?</a> <em>Science (New York, N.Y.)</em>. 2015;347(6228):1314–1315. </div>
+<div id="ref-chang2020" class="csl-entry" role="listitem">
+<div class="csl-left-margin">1. </div><div class="csl-right-inline">Chang K Park. <a href="https://doi.org/10.1038/s41598-020-75888-8">Polypharmacy, hospitalization, and mortality risk: A nationwide cohort study</a>. <em>Scientific Reports</em>. 2020;10. </div>
 </div>
-<div id="ref-mckay2020" class="csl-entry" role="listitem">
-<div class="csl-left-margin">2. </div><div class="csl-right-inline">McKay B, Ebell M, Billings WZ, et al. <a href="https://doi.org/10.1093/ofid/ofaa494">Associations <span>Between Relative Viral Load</span> at <span>Diagnosis</span> and <span>Influenza A Symptoms</span> and <span>Recovery</span>.</a> <em>Open forum infectious diseases</em>. 2020;7(11):ofaa494. </div>
+<div id="ref-rymer2020" class="csl-entry" role="listitem">
+<div class="csl-left-margin">2. </div><div class="csl-right-inline">Rymer K Fonseca. <a href="https://doi.org/10.1161/JAHA.120.016217">Effect of 30-day vs 90-day prescriptions on medication adherence after myocardial infarction</a>. <em>Journal of the American Heart Association</em>. 2020;10(1). </div>
 </div>
-<div id="ref-mckay2020a" class="csl-entry" role="listitem">
-<div class="csl-left-margin">3. </div><div class="csl-right-inline">McKay B, Ebell M, Dale AP, et al. <a href="https://doi.org/10.1098/rspb.2020.0496">Virulence-mediated infectiousness and activity trade-offs and their impact on transmission potential of influenza patients.</a> <em>Proceedings. Biological sciences</em>. 2020;287(1927):20200496. </div>
+<div id="ref-lee1995" class="csl-entry" role="listitem">
+<div class="csl-left-margin">3. </div><div class="csl-right-inline">Lee T Woodlief. <a href="https://doi.org/10.1161/01.CIR.91.6.1659">Determinants of mortality in acute myocardial infarction: A circulation study</a>. <em>Circulation</em>. 1995;91(6):1659–1665. </div>
 </div>
 </div></section></div></main>
 <!-- /main column -->

@@ -37,6 +37,7 @@ These authors contributed equally to this work.
 _Write a summary of your project._
 
 _It is recommended to use a structured abstract with Background/Methods/Results/Discussion sections._
+( Comming Soon)
 
 {{< pagebreak >}}
 
@@ -46,7 +47,12 @@ This information is important because it can help healthcare providers better un
 associated with improved or worsened outcomes may guide clinical decision-making, optimize treatment strategies, and ultimately improve patient care and safety.
 
 ## General Background Information
-_Provide enough background on your topic that others can understand the why and how of your analysis_ 
+Medications are a cornerstone of modern clinical care, particularly in hospitalized and critically ill populations where patients frequently receive multiple therapies simultaneously. This concurrent use of multiple medications, commonly referred to as polypharmacy, has become increasingly prevalent, especially among older adults and patients with chronic or complex conditions. While necessary for managing multiple comorbidities, polypharmacy introduces risks such as drug–drug interactions, adverse effects, and challenges in clinical decision-making.
+Large-scale epidemiological studies have demonstrated that polypharmacy is not only common but also associated with higher mortality, hospitalization, and healthcare utilization. A nationwide cohort study published in Nature, analyzed over three million older patients and found a clear relationship between the number of medications one was taking and adverse outcomes. (Chang et al., 2020)[@chang2020]
+Another large-scale observation study looked at whether 30-day prescriptions or 90-day prescriptions were better for patient adherence after a heart attack. They found that those given the 90-day prescription are more likely to stay on their medication long-term compared to those given the 30-day prescription. There was about a 10% increase in adherence for statins, beta blockers, ACE inhibitors, and P2Y12 inhibitors. The authors suggested that this increase could be due to less pharmacy visits and a lower likelihood of patients missing a refill. (Rymer et al., 2020)[@rymer2020]
+Observational data from electronic health records (EHRs), such as MIMIC-IV, provide a valuable platform to explore these relationships. These datasets include detailed patient demographics, medication prescriptions, and clinical outcomes, allowing researchers to examine patterns across large, diverse patient populations. However, interpreting these data requires caution: unadjusted associations between medication use and mortality may reflect underlying patient severity rather than direct drug effects.
+
+In this study, we examine how individual medication classes, combinations of medications, and overall medication burden relate to 30-day mortality using a synthetic dataset derived from MIMIC-IV. By analyzing both class-specific and polypharmacy patterns, this work aims to provide insights into treatment-outcome relationships while highlighting the methodological challenges inherent in observational clinical research.
 
 ## Description of data and data source
 This study uses the MIMIC-IV (Medical Information Mart for Intensive Care) database to examine relationships between medication use and patient mortality. MIMIC-IV is a large, publicly available database containing de-identified health records from patients admitted to Beth Israel Deaconess Medical Center in Boston, Massachusetts.
@@ -174,8 +180,6 @@ knitr::include_graphics(here("results", "figures", "polypharmacy-frequency.png")
 ```
 
 @fig-polypharmacy-freq displays a non-linear, inverted U-shaped relationship between polypharmacy and 30-day mortality. Mortality rises sharply from near 0% among patients receiving only one medication class to a peak of approximately 0.12% to 0.13% among those receiving three classes, then declines steadily through four and five classes before dropping back to near 0% among patients receiving all six classes. The point sizes indicate that the middle groups, particularly those receiving three to four medication classes, represent the largest share of admissions, lending more reliability to the estimates in that range. The near-zero mortality at both extremes is notable and warrants careful interpretation, as patients receiving very few or all six medication classes may represent highly distinct clinical subgroups, and the small sample sizes at those extremes make those estimates less stable. As with the previous figure, Further analysis would be necessary to determine whether the observed pattern reflects a true relationship between polypharmacy and mortality or is driven by differences in underlying patient characteristics across groups. 
-
-
 
 
 To complement the descriptive findings, a series of simple single-predictor logistic regression models were fit to quantify the unadjusted association between each exposure of interest and 30-day mortality. For each of the six medication classes, a separate logistic regression model was fit with the binary medication receipt indicator as the sole predictor of 30-day mortality. This approach provides odds ratios (ORs) and 95% confidence intervals (CIs) that are more interpretable than raw rate differences alone. In addition, logistic regression models were fit for age (continuous) and sex to characterize their individual unadjusted associations with the outcome. Finally, polypharmacy count (number of medication classes received) was modeled as a continuous predictor to formally test the trend observed in the descriptive analysis. All models were fit using the `glm()` function in R with a binomial family and logit link. Given the highly imbalanced outcome (approximately 0.1% mortality), results should be interpreted cautiously and no p-value threshold is used to designate statistical significance.
@@ -359,23 +363,19 @@ ggsave(here("results", "figures", "roc_curve.png"),
 # Discussion
 
 ## Summary and Interpretation
-_Summarize what you did, what you found and what it means._
+Our study explored the associations between individual medication classes, polypharmacy, and 30-day mortality in a synthetic dataset modeled after MIMIC-IV. Descriptive analyses revealed that patients receiving insulin or ACE inhibitors had lower unadjusted mortality rates, whereas patients receiving anticoagulants, diuretics, antiplatelets, or statins had higher unadjusted mortality. Polypharmacy displayed a non-linear, inverted U-shaped relationship with mortality, with intermediate levels of medication use corresponding to the highest observed risk.
+
+These findings are consistent with prior research. Large-scale cohort studies, including Scientific Reports 2020, demonstrate that increasing numbers of medications are associated with progressively higher risks of mortality, but that the impact varies by drug type and patient context. (Chang et al., 2020)[@chang2020] Similarly, JAHA 2020 highlights that while polypharmacy and complex medication regimens are linked to increased mortality, these associations are largely influenced by underlying patient severity and comorbidities. (Rymer et al., 2020)[@rymer2020] Patients receiving anticoagulants, statins, or diuretics may have more severe disease, predisposing them to higher mortality, while patients on insulin or ACE inhibitors may have more stable or controlled conditions. 
+
+The observed differences among medication classes in our study may reflect clinical indications and different patients characteristics, rather than causal treatment effects. A prior study published in Circulation, yielded results that showed treatment alone didn’t decrease mortality rates, but it also depended on the patient's characteristics, such as age, sex, shock, history of condition, etc. (Lee et al., 1995)[@lee1995]
 
 ## Strengths and Limitations
-_Discuss what you perceive as strengths and limitations of your analysis._
+This project was based on a synthetic database created to reflect the trends seen in the real patient data of the MIMIC-IV database. And while the synthetic dataset allows for ease of analysis and a more structured and reproducible workflow, it does run the risk of losing certain trends and not fully encapsulating the variability and complexity of the real-world data patterns. In our dataset, the mortality events were very low, which could result in unstable estimates and wide confidence intervals. Our analyses are mostly unadjusted or minimally adjusted, making them highly susceptible to confounding variables.
 
 ## Conclusions
-_What are the main take-home messages?_
-
-_Include citations in your Qmd file using BibTeX, the list of references will automatically be placed at the end_
-
-This paper [@leek2015] discusses types of analyses. 
-
-These papers [@mckay2020; @mckay2020a] are good examples of papers published using a fully reproducible setup similar to the one shown in this template. 
-
-Note that this cited reference will show up at the end of the document, the reference formatting is determined by the CSL file specified in the YAML header. Many more style files for almost any journal [are available](https://www.zotero.org/styles). You also specify the location of your BibTeX reference file in the YAML. You can call your reference file anything you like.
-
+Our findings illustrate that individual medication classes and overall medication burden show complex relationships with 30-day mortality. Consistent with previous studies, higher medication counts and certain drug classes are associated with increased mortality, but these associations are likely influenced by patient severity and patient variability rather than strictly medication use. 
 
 {{< pagebreak >}}
 
 # References
+
