@@ -21,8 +21,7 @@ This folder contains figures, large files, output, and tables. This is where all
   tables, computes 30-day mortality, assigns medication classes, and saves 
   the final analytic dataset.
 - `mimic-eda.qmd` - creates exploritory figures of the final analytic dataset
-- `analysis-code.qmd` - rendered HTML report containing all exploratory plots and tables
-
+- `analysis-code.qmd` - runs statistical analyses and perdictive models on analysis_dataset.csv
 
 ## Inputs
 
