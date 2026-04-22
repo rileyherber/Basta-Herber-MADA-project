@@ -21,6 +21,7 @@ This folder contains figures, large files, output, and tables. This is where all
   tables, computes 30-day mortality, assigns medication classes, and saves 
   the final analytic dataset.
 - `mimic-eda.qmd` - creates exploritory figures of the final analytic dataset
+- `analysis-code.qmd` - rendered HTML report containing all exploratory plots and tables
 
 
 ## Inputs
@@ -43,5 +44,6 @@ Raw data files from `data/raw-data/`:
     quarto render data\raw-data\raw-synthetic-data.qmd
     quarto render code\processing-code\mimic-processing.qmd
     quarto render code\eda-code\mimic-eda.qmd
+    quarto render code\analysis-code\analysis-code.qmd
     quarto render products\manuscript\Manuscript.qmd
 
