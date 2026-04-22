@@ -1,0 +1,359 @@
+# Further Analysis and Models
+Table 1: Unadjusted odds ratios (95% CI) from single-predictor logistic regression models for 30-day mortality.
+```{r}
+library(here)
+library(dplyr)
+library(broom)
+library(knitr)
+
+# Load and prepare the analytic dataset
+admissions_clean <- read.csv(here("data", "processed-data", "analysis_dataset.csv")) |>
+  rename(
+    age               = age_at_admission,
+    med_anticoagulant = anticoagulant,
+    med_statin        = statin,
+    med_insulin       = insulin,
+    med_antiplatelet  = antiplatelet,
+    med_diuretic      = diuretic,
+    med_ace_inhibitor = ace_inhibitor
+  ) |>
+  mutate(
+    n_med_classes = med_anticoagulant + med_statin + med_insulin +
+                    med_antiplatelet + med_diuretic + med_ace_inhibitor
+  )
+
+# Define predictors to loop over
+predictors <- c(
+  "med_anticoagulant", "med_statin", "med_insulin",
+  "med_antiplatelet", "med_diuretic", "med_ace_inhibitor",
+  "age", "gender", "n_med_classes"
+)
+
+# Fit one logistic regression per predictor and extract tidy results
+basic_results <- lapply(predictors, function(pred) {
+  formula <- as.formula(paste("mortality_30day ~", pred))
+  fit <- glm(formula, data = admissions_clean, family = binomial(link = "logit"))
+  tidy(fit, exponentiate = TRUE, conf.int = TRUE) |>
+    filter(term != "(Intercept)") |>
+    mutate(predictor = pred)
+}) |>
+  bind_rows() |>
+  select(Predictor = predictor, Term = term,
+         OR = estimate, `95% CI Lower` = conf.low,
+         `95% CI Upper` = conf.high, `p-value` = p.value) |>
+  mutate(across(c(OR, `95% CI Lower`, `95% CI Upper`), \(x) round(x, 3)),
+         `p-value` = signif(`p-value`, 3))
+
+# Save and display
+saveRDS(basic_results, here("results", "tables", "basic_logreg_results.rds"))
+kable(basic_results)
+```
+
+Figure 5: Forest plot of unadjusted odds ratios (95% CI) for 30-day mortality by predictor. ORs greater than 1 indicate higher odds of mortality; ORs less than 1 indicate lower odds. The dashed vertical line marks the null (OR = 1).
+
+
+```{r}
+
+library(here)
+library(dplyr)
+library(broom)
+library(ggplot2)
+
+# Load and prepare the analytic dataset
+admissions_clean <- read.csv(here("data", "processed-data", "analysis_dataset.csv")) |>
+  rename(
+    age               = age_at_admission,
+    med_anticoagulant = anticoagulant,
+    med_statin        = statin,
+    med_insulin       = insulin,
+    med_antiplatelet  = antiplatelet,
+    med_diuretic      = diuretic,
+    med_ace_inhibitor = ace_inhibitor
+  ) |>
+  mutate(
+    n_med_classes = med_anticoagulant + med_statin + med_insulin +
+                    med_antiplatelet + med_diuretic + med_ace_inhibitor
+  )
+
+predictors <- c(
+  "med_anticoagulant", "med_statin", "med_insulin",
+  "med_antiplatelet", "med_diuretic", "med_ace_inhibitor",
+  "age", "gender", "n_med_classes"
+)
+
+basic_results <- lapply(predictors, function(pred) {
+  formula <- as.formula(paste("mortality_30day ~", pred))
+  fit <- glm(formula, data = admissions_clean, family = binomial(link = "logit"))
+  tidy(fit, exponentiate = TRUE, conf.int = TRUE) |>
+    filter(term != "(Intercept)") |>
+    mutate(predictor = pred)
+}) |>
+  bind_rows() |>
+  select(Predictor = predictor, Term = term,
+         OR = estimate, `95% CI Lower` = conf.low,
+         `95% CI Upper` = conf.high, `p-value` = p.value) |>
+  mutate(across(c(OR, `95% CI Lower`, `95% CI Upper`), \(x) round(x, 3)),
+         `p-value` = signif(`p-value`, 3))
+
+basic_results |>
+  ggplot(aes(x = OR, y = reorder(Term, OR))) +
+  geom_point(size = 3, color = "steelblue") +
+  geom_errorbarh(aes(xmin = `95% CI Lower`, xmax = `95% CI Upper`),
+                 height = 0.2, color = "steelblue") +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "gray40") +
+  scale_x_log10() +
+  labs(
+    x = "Odds Ratio (log scale)",
+    y = NULL,
+    title = "Unadjusted Odds Ratios for 30-Day Mortality"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(panel.grid.minor = element_blank())
+
+ggsave(here("results", "figures", "basic_logreg_forest.png"),
+       width = 7, height = 5, dpi = 300)
+```
+
+Figure 6: Receiver operating characteristic (ROC) curve for the multivariable logistic regression model predicting 30-day mortality. The AUC reflects the model’s ability to discriminate between survivors and non-survivors.
+
+```{r}
+library(pROC)
+library(ggplot2)
+mv_model <- glm(mortality_30day ~ med_anticoagulant + med_statin + med_insulin +
+                 med_antiplatelet + med_diuretic + med_ace_inhibitor + age + gender,
+                data = admissions_clean, family = binomial(link = "logit"))
+
+# Generate predicted probabilities (mv_model and admissions_clean carried over from tbl-multivariable)
+admissions_clean$pred_prob <- predict(mv_model, type = "response")
+
+# Compute ROC
+roc_obj <- roc(admissions_clean$mortality_30day, admissions_clean$pred_prob,
+               quiet = TRUE)
+auc_val <- round(auc(roc_obj), 3)
+
+# Plot
+roc_df <- data.frame(
+  specificity = rev(roc_obj$specificities),
+  sensitivity = rev(roc_obj$sensitivities)
+)
+
+ggplot(roc_df, aes(x = 1 - specificity, y = sensitivity)) +
+  geom_line(color = "steelblue", linewidth = 1) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray50") +
+  annotate("text", x = 0.7, y = 0.15,
+           label = paste0("AUC = ", auc_val), size = 4.5) +
+  labs(
+    x = "1 - Specificity (False Positive Rate)",
+    y = "Sensitivity (True Positive Rate)",
+    title = "ROC Curve: Multivariable Logistic Regression"
+  ) +
+  theme_minimal(base_size = 12)
+
+ggsave(here("results", "figures", "roc_curve.png"),
+       width = 6, height = 5, dpi = 300)
+```
+
+# ML models, cross-validation metrics, and figures
+
+Outputs:
+   results/figures/ml_roc_pr_curves.png
+   results/figures/ml_model_comparison.png
+   results/figures/ml_feature_importance.png
+   results/tables/ml_model_comparison.csv
+
+
+```{r}
+# ML pipeline: Medication Regimens & 30-day Mortality
+library(tidyverse)
+library(tidymodels)
+library(ranger)
+library(xgboost)
+library(rpart)
+library(vip)
+library(patchwork)
+```
+
+```{r}
+# Paths
+DATA_PATH <- "data/processed-data/analysis_dataset.csv"
+FIG_DIR   <- "results/figures"
+TBL_DIR   <- "results/tables"
+```
+
+```{r}
+# Load & preprocess data
+df <- read_csv(DATA_PATH, show_col_types = FALSE) |>
+  mutate(
+    gender_bin = as.integer(gender == "M"),
+    polypharmacy = ace_inhibitor + statin + anticoagulant +
+      diuretic + antiplatelet + insulin,
+    mortality_30day = factor(mortality_30day,
+                             levels = c(0, 1),
+                             labels = c("survived", "died"))
+  ) |>
+  select(mortality_30day, age_at_admission, gender_bin,
+         ace_inhibitor, statin, anticoagulant,
+         diuretic, antiplatelet, insulin, polypharmacy)
+
+cat("Dataset:", nrow(df), "x", ncol(df), "\n")
+print(table(df$mortality_30day))
+```
+
+```{r}
+# CV setup
+set.seed(42)
+folds <- vfold_cv(df, v = 5, strata = mortality_30day)
+metrics <- metric_set(roc_auc, average_precision, brier_class)
+```
+```{r}
+# Recipe
+rec_full <- recipe(mortality_30day ~ ., data = df) |>
+  step_normalize(age_at_admission, polypharmacy)
+
+rec_age <- recipe(mortality_30day ~ age_at_admission, data = df)
+
+rec_meds <- recipe(
+  mortality_30day ~ ace_inhibitor + statin + anticoagulant +
+    diuretic + antiplatelet + insulin + polypharmacy,
+  data = df
+)
+```
+
+```{r}
+# Models
+pos_weight <- sum(df$mortality_30day == "survived") /
+              sum(df$mortality_30day == "died")
+
+lr <- logistic_reg() |> set_engine("glm") |> set_mode("classification")
+
+dt <- decision_tree(tree_depth = 4) |> set_engine("rpart") |> set_mode("classification")
+
+rf <- rand_forest(trees = 500) |>
+  set_engine("ranger",
+             importance = "impurity",
+             class.weights = c("survived" = 1, "died" = 1)) |>
+  set_mode("classification")
+
+gx <- boost_tree(trees = 200, tree_depth = 3) |>
+  set_engine("xgboost",
+             scale_pos_weight = pos_weight) |>
+  set_mode("classification")
+
+```
+
+```{r}
+wf <- function(recipe, model) {
+  workflow() |>
+    add_recipe(recipe) |>
+    add_model(model)
+}
+```
+```{r}
+# Workflow
+workflows <- list(
+  "Logistic Regression" = wf(rec_full, lr),
+  "Decision Tree"       = wf(rec_full, dt),
+  "Random Forest"       = wf(rec_full, rf),
+  "Gradient Boosting"   = wf(rec_full, gx),
+  "Age Only"            = wf(rec_age, lr),
+  "Medication Only"     = wf(rec_meds, lr)
+)
+```
+```{r}
+# Fir CV (single run)
+res_list <- map(names(workflows), function(nm) {
+  fit_resamples(
+    workflows[[nm]],
+    resamples = folds,
+    metrics = metrics,
+    control = control_resamples(save_pred = TRUE)
+  )
+})
+names(res_list) <- names(workflows)
+```
+
+```{r}
+# Metric Table
+summary_tbl <- map_dfr(res_list, collect_metrics, .id = "Model") |>
+  select(Model, .metric, mean) |>
+  pivot_wider(names_from = .metric, values_from = mean) |>
+  rename(
+    `AUC-ROC` = roc_auc,
+    `Avg Precision` = average_precision,
+    `Brier Score` = brier_class
+  ) |>
+  mutate(across(where(is.numeric), ~round(.x, 4)))
+
+write_csv(summary_tbl, file.path(TBL_DIR, "ml_model_comparison.csv"))
+print(summary_tbl)
+```
+
+```{r}
+# Predictions (OOF)
+oof_preds <- map_dfr(res_list, collect_predictions, .id = "model")
+```
+
+```{r}
+# Calibration plot
+cal_df <- oof_preds |>
+  mutate(bin = ntile(.pred_died, 10)) |>
+  group_by(model, bin) |>
+  summarise(
+    mean_pred = mean(.pred_died),
+    obs_rate = mean(mortality_30day == "died"),
+    .groups = "drop"
+  )
+
+p_cal <- ggplot(cal_df, aes(mean_pred, obs_rate, color = model)) +
+  geom_point() +
+  geom_line() +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  labs(title = "Calibration Plot", x = "Predicted", y = "Observed") +
+  theme_bw()
+
+ggsave(file.path(FIG_DIR, "ml_calibration.png"), p_cal)
+```
+
+```{r}
+# ROC + PR curves
+
+roc_df <- oof_preds |>
+  group_by(model) |>
+  roc_curve(mortality_30day, .pred_died, event_level = "second")
+
+p_roc <- ggplot(roc_df, aes(1 - specificity, sensitivity, color = model)) +
+  geom_line() +
+  geom_abline(linetype = "dashed") +
+  theme_bw() +
+  labs(title = "ROC Curves")
+
+pr_df <- oof_preds |>
+  group_by(model) |>
+  pr_curve(mortality_30day, .pred_died, event_level = "second")
+
+p_pr <- ggplot(pr_df, aes(recall, precision, color = model)) +
+  geom_line() +
+  theme_bw() +
+  labs(title = "Precision-Recall Curves")
+
+fig1 <- p_roc + p_pr
+
+ggsave(file.path(FIG_DIR, "ml_roc_pr_curves.png"), fig1)
+```
+
+
+```{r}
+# Feature importance (RF)
+
+rf_fit <- wf(rec_full, rf) |> fit(df)
+
+p_imp <- rf_fit |>
+  extract_fit_parsnip() |>
+  vip(num_features = 9) +
+  theme_bw() +
+  labs(title = "Random Forest Feature Importance")
+
+ggsave(file.path(FIG_DIR, "ml_feature_importance.png"), p_imp)
+
+cat("Workflow complete.\n")
+```

@@ -16,6 +16,7 @@ csl: ../../assets/american-journal-of-epidemiology.csl
 # load a few R packages
 library(here)
 library(knitr)
+library(tidyverse)
 ```
 
 
@@ -34,10 +35,7 @@ These authors contributed equally to this work.
 
 
 # Summary/Abstract
-_Write a summary of your project._
-
-_It is recommended to use a structured abstract with Background/Methods/Results/Discussion sections._
-( Comming Soon)
+Throughout this project we examined how different medication and medication regimens relate to patient mortality. We first cleaned and organized the MIMIC-IV dataset to be able to create a synthetic dataset based on the original due to the confidentiality of the MIMIC-IV dataset. We then used the synthetic dataset to look at the relationship between medication use and patient mortality. Our results showed that patients receiving insulin or ACE inhibitors had lower unadjusted mortality rates, whereas patients receiving anticoagulants, diuretics, antiplatelets, or statins had higher unadjusted mortality. The higher unadjusted mortality may be due to patients having comorbidities.
 
 {{< pagebreak >}}
 
@@ -121,6 +119,10 @@ Exploratory analysis code is available in:
 
 code/eda-code/mimic-eda.qmd
 
+Further analysis and model code is available in:
+
+code\analysis-code\analysis-code.qmd
+
 ## Statistical Analysis
 
 This study focuses on exploratory, unadjusted analyses.
@@ -154,7 +156,9 @@ knitr::include_graphics(here("results", "figures", "day-30-mortality.png"))
 
 ```
 
-In @fig-mortality, the vast majority of hospital admissions resulted in survival within 30 days. Only 13 admissions (approximately 0.1%) were associated with death within 30 days, while approximately 99.9% of admissions survived beyond 30 days. This highly imbalanced outcome distribution reflects the synthetic data generation process and indicates that mortality events are rare in the simulated cohort.
+The distribution of 30-day mortality in the synthetic dataset was highly imbalanced, with approximately 0.1% of admissions resulting in death (@fig-mortality). This extreme class imbalance has important implications for subsequent statistical modeling and evaluation metrics.
+
+Medication use was relatively uniform across the six medication classes examined, with each class prescribed in approximately half of all admissions (@fig-med-frequency). Anticoagulants were the most frequently prescribed class (53.6%), while other classes ranged narrowly between 51.9% and 52.9%.
 
 ```{r}
 #| label: fig-med-frequency
@@ -163,7 +167,8 @@ knitr::include_graphics(here("results", "figures", "perscriptoin-frequency.png")
 
 ```
 
-@fig-med-frequency shows that the six medication classes shown are all prescribed at similar rates, ranging narrowly from 51.9% to 53.6% of admissions. Anticoagulants are the most frequently used class, appearing in just over half of all admissions (53.6%), followed closely by statins (52.9%) and insulin (52.7%). Antiplatelets, diuretics, and ACE inhibitors round out the list, each prescribed in roughly 52% of cases.
+Unadjusted comparisons of mortality rates by medication class revealed heterogeneous patterns (@fig-med-mortality). Insulin and ACE inhibitor use were associated with lower raw mortality rates compared to non-use, while anticoagulants, diuretics, antiplatelets, and statins were associated with higher mortality rates. These differences likely reflect confounding by indication rather than causal effects of medication exposure.
+
 
 ```{r}
 #| label: fig-med-mortality
@@ -190,53 +195,8 @@ To complement the descriptive findings, a series of simple single-predictor logi
 #| echo: true
 #| warning: false
 #| message: false
-
-library(here)
-library(dplyr)
-library(broom)
-library(knitr)
-
-# Load and prepare the analytic dataset
-admissions_clean <- read.csv(here("data", "processed-data", "analysis_dataset.csv")) |>
-  rename(
-    age               = age_at_admission,
-    med_anticoagulant = anticoagulant,
-    med_statin        = statin,
-    med_insulin       = insulin,
-    med_antiplatelet  = antiplatelet,
-    med_diuretic      = diuretic,
-    med_ace_inhibitor = ace_inhibitor
-  ) |>
-  mutate(
-    n_med_classes = med_anticoagulant + med_statin + med_insulin +
-                    med_antiplatelet + med_diuretic + med_ace_inhibitor
-  )
-
-# Define predictors to loop over
-predictors <- c(
-  "med_anticoagulant", "med_statin", "med_insulin",
-  "med_antiplatelet", "med_diuretic", "med_ace_inhibitor",
-  "age", "gender", "n_med_classes"
-)
-
-# Fit one logistic regression per predictor and extract tidy results
-basic_results <- lapply(predictors, function(pred) {
-  formula <- as.formula(paste("mortality_30day ~", pred))
-  fit <- glm(formula, data = admissions_clean, family = binomial(link = "logit"))
-  tidy(fit, exponentiate = TRUE, conf.int = TRUE) |>
-    filter(term != "(Intercept)") |>
-    mutate(predictor = pred)
-}) |>
-  bind_rows() |>
-  select(Predictor = predictor, Term = term,
-         OR = estimate, `95% CI Lower` = conf.low,
-         `95% CI Upper` = conf.high, `p-value` = p.value) |>
-  mutate(across(c(OR, `95% CI Lower`, `95% CI Upper`), \(x) round(x, 3)),
-         `p-value` = signif(`p-value`, 3))
-
-# Save and display
-saveRDS(basic_results, here("results", "tables", "basic_logreg_results.rds"))
-kable(basic_results)
+table_data <- readRDS(here("results", "tables", "basic_logreg_results.rds"))
+kable(table_data)
 ```
 
 ```{r}
@@ -245,65 +205,7 @@ kable(basic_results)
 #| echo: true
 #| warning: false
 #| message: false
-
-library(here)
-library(dplyr)
-library(broom)
-library(ggplot2)
-
-# Load and prepare the analytic dataset
-admissions_clean <- read.csv(here("data", "processed-data", "analysis_dataset.csv")) |>
-  rename(
-    age               = age_at_admission,
-    med_anticoagulant = anticoagulant,
-    med_statin        = statin,
-    med_insulin       = insulin,
-    med_antiplatelet  = antiplatelet,
-    med_diuretic      = diuretic,
-    med_ace_inhibitor = ace_inhibitor
-  ) |>
-  mutate(
-    n_med_classes = med_anticoagulant + med_statin + med_insulin +
-                    med_antiplatelet + med_diuretic + med_ace_inhibitor
-  )
-
-predictors <- c(
-  "med_anticoagulant", "med_statin", "med_insulin",
-  "med_antiplatelet", "med_diuretic", "med_ace_inhibitor",
-  "age", "gender", "n_med_classes"
-)
-
-basic_results <- lapply(predictors, function(pred) {
-  formula <- as.formula(paste("mortality_30day ~", pred))
-  fit <- glm(formula, data = admissions_clean, family = binomial(link = "logit"))
-  tidy(fit, exponentiate = TRUE, conf.int = TRUE) |>
-    filter(term != "(Intercept)") |>
-    mutate(predictor = pred)
-}) |>
-  bind_rows() |>
-  select(Predictor = predictor, Term = term,
-         OR = estimate, `95% CI Lower` = conf.low,
-         `95% CI Upper` = conf.high, `p-value` = p.value) |>
-  mutate(across(c(OR, `95% CI Lower`, `95% CI Upper`), \(x) round(x, 3)),
-         `p-value` = signif(`p-value`, 3))
-
-basic_results |>
-  ggplot(aes(x = OR, y = reorder(Term, OR))) +
-  geom_point(size = 3, color = "steelblue") +
-  geom_errorbarh(aes(xmin = `95% CI Lower`, xmax = `95% CI Upper`),
-                 height = 0.2, color = "steelblue") +
-  geom_vline(xintercept = 1, linetype = "dashed", color = "gray40") +
-  scale_x_log10() +
-  labs(
-    x = "Odds Ratio (log scale)",
-    y = NULL,
-    title = "Unadjusted Odds Ratios for 30-Day Mortality"
-  ) +
-  theme_minimal(base_size = 12) +
-  theme(panel.grid.minor = element_blank())
-
-ggsave(here("results", "figures", "basic_logreg_forest.png"),
-       width = 7, height = 5, dpi = 300)
+knitr::include_graphics(here("results", "figures", "basic_logreg_forest.png"))
 ```
 
 The unadjusted logistic regression results in @tbl-basic-logreg and @fig-basic-logreg-forest are broadly consistent with the descriptive analysis. Insulin receipt and ACE inhibitor receipt are associated with odds ratios below 1.0, suggesting lower unadjusted odds of 30-day mortality among recipients, while anticoagulants, diuretics, antiplatelets, and statins are associated with ORs above 1.0. Age shows a positive association with mortality, as expected, and the polypharmacy count captures the non-linear pattern observed descriptively. Wide confidence intervals throughout reflect the small number of mortality events and reinforce that these estimates are unstable. These unadjusted models are exploratory and should not be interpreted causally.
@@ -319,43 +221,45 @@ To build on the single-predictor models, a multivariable logistic regression was
 #| echo: true
 #| warning: false
 #| message: false
-
-library(pROC)
-library(ggplot2)
-mv_model <- glm(mortality_30day ~ med_anticoagulant + med_statin + med_insulin +
-                 med_antiplatelet + med_diuretic + med_ace_inhibitor + age + gender,
-                data = admissions_clean, family = binomial(link = "logit"))
-
-# Generate predicted probabilities (mv_model and admissions_clean carried over from tbl-multivariable)
-admissions_clean$pred_prob <- predict(mv_model, type = "response")
-
-# Compute ROC
-roc_obj <- roc(admissions_clean$mortality_30day, admissions_clean$pred_prob,
-               quiet = TRUE)
-auc_val <- round(auc(roc_obj), 3)
-
-# Plot
-roc_df <- data.frame(
-  specificity = rev(roc_obj$specificities),
-  sensitivity = rev(roc_obj$sensitivities)
-)
-
-ggplot(roc_df, aes(x = 1 - specificity, y = sensitivity)) +
-  geom_line(color = "steelblue", linewidth = 1) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray50") +
-  annotate("text", x = 0.7, y = 0.15,
-           label = paste0("AUC = ", auc_val), size = 4.5) +
-  labs(
-    x = "1 - Specificity (False Positive Rate)",
-    y = "Sensitivity (True Positive Rate)",
-    title = "ROC Curve: Multivariable Logistic Regression"
-  ) +
-  theme_minimal(base_size = 12)
-
-ggsave(here("results", "figures", "roc_curve.png"),
-       width = 6, height = 5, dpi = 300)
+knitr::include_graphics(here("results", "figures", "roc_curve.png"))
 ```
 
+## ML models and Cross-Validation Metrics
+
+Multiple machine learning models were evaluated using 5-fold stratified cross-validation, including logistic regression, decision tree, random forest, gradient boosting, and two baseline models (age-only and medication-only).
+
+As shown in @tb2-ml_model_comparison, model discrimination was generally modest across all approaches. Logistic regression achieved the highest performance (AUC = 0.622), followed closely by the random forest model (AUC = 0.611). The age-only baseline model demonstrated comparable predictive ability (AUC = 0.584), while the medication-only model performed similarly (AUC = 0.584). The decision tree model performed at chance level (AUC = 0.500), and gradient boosting underperformed relative to simpler models (AUC = 0.465).
+
+```{r}
+#| label: tb2-ml_model_comparison
+#| tb2-cap: "Cross-validated performance of predictive models for 30-day mortality using demographic and medication features. Metrics include AUC-ROC, average precision, and Brier score."
+#| echo: true
+#| warning: false
+#| message: false
+ml_comp <- read_csv(here("results", "tables", "ml_model_comparison.csv"))
+kable(ml_comp)
+```
+
+Medication-only models did not improve discrimination relative to age, suggesting limited independent predictive value of medication variables in isolation. Decision tree and gradient boosting models performed poorly, with AUC values of 0.500 and 0.465, respectively.
+
+ROC curves and calibration plots (@fig-roc-ml-model and @fig-calibration-ml-model) further demonstrated limited model performance. While models were able to rank individuals slightly better than chance, predicted probabilities were heavily compressed near zero, reflecting both extreme class imbalance and limited feature informativeness.
+```{r}
+#| label: fig-roc-ml-model
+#| fig-cap: "Receiver operating characteristic (ROC) curves for machine learning and baseline models predicting 30-day mortality, evaluated using 5-fold stratified cross-validation."
+#| echo: true
+#| warning: false
+#| message: false
+knitr::include_graphics(here("results", "figures", "ml_roc_pr_curves.png"))
+```
+
+```{r}
+#| label: fig-calibration-ml-model
+#| fig-cap: "Calibration plot illustrating that all models produce highly compressed probability estimates, with limited spread in predicted 30-day mortality risk and modest alignment with observed outcomes."
+#| echo: true
+#| warning: false
+#| message: false
+knitr::include_graphics(here("results", "figures", "ml_calibration.png"))
+```
 
 {{< pagebreak >}}
 
@@ -368,6 +272,15 @@ Our study explored the associations between individual medication classes, polyp
 These findings are consistent with prior research. Large-scale cohort studies, including Scientific Reports 2020, demonstrate that increasing numbers of medications are associated with progressively higher risks of mortality, but that the impact varies by drug type and patient context. (Chang et al., 2020)[@chang2020] Similarly, JAHA 2020 highlights that while polypharmacy and complex medication regimens are linked to increased mortality, these associations are largely influenced by underlying patient severity and comorbidities. (Rymer et al., 2020)[@rymer2020] Patients receiving anticoagulants, statins, or diuretics may have more severe disease, predisposing them to higher mortality, while patients on insulin or ACE inhibitors may have more stable or controlled conditions. 
 
 The observed differences among medication classes in our study may reflect clinical indications and different patients characteristics, rather than causal treatment effects. A prior study published in Circulation, yielded results that showed treatment alone didn’t decrease mortality rates, but it also depended on the patient's characteristics, such as age, sex, shock, history of condition, etc. (Lee et al., 1995)[@lee1995]
+
+### Model-Based Finding
+The results from our statistical and machine learning models further support this interpretation. Across both unadjusted and multivariable logistic regression models, age emerged as the strongest and most consistent predictor of 30-day mortality, reinforcing its role as a dominant marker of baseline risk. Medication class effects were inconsistent across models and attenuated in multivariable analysis, suggesting that observed associations in the descriptive results are likely confounded by patient characteristics rather than independent drug effects.
+
+Similarly, machine learning models did not substantially improve predictive performance beyond simple logistic regression. The highest-performing model (logistic regression) achieved only modest discrimination (AUC ≈ 0.62), while more complex approaches such as random forests and gradient boosting did not meaningfully improve performance. Importantly, an age-only baseline model performed nearly as well as full feature sets, indicating that most predictive signal in the dataset is captured by demographic variables rather than medication exposure.
+
+Across all models, predicted probabilities were highly compressed toward zero, reflecting both the extreme rarity of mortality events and the limited informativeness of the available features. This is consistent with the calibration and ROC analyses, which showed weak but non-random discrimination and limited ability to distinguish high-risk from low-risk patients.
+
+Taken together, the modeling results reinforce the descriptive findings: while medication class and polypharmacy show apparent associations with mortality in unadjusted analyses, these relationships are likely driven by underlying patient severity. The lack of substantial improvement from machine learning models further suggests that the available predictors do not contain strong nonlinear or interaction-based signal for mortality prediction in this dataset.
 
 ## Strengths and Limitations
 This project was based on a synthetic database created to reflect the trends seen in the real patient data of the MIMIC-IV database. And while the synthetic dataset allows for ease of analysis and a more structured and reproducible workflow, it does run the risk of losing certain trends and not fully encapsulating the variability and complexity of the real-world data patterns. In our dataset, the mortality events were very low, which could result in unstable estimates and wide confidence intervals. Our analyses are mostly unadjusted or minimally adjusted, making them highly susceptible to confounding variables.
