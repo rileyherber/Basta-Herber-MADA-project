@@ -121,7 +121,7 @@ code/eda-code/mimic-eda.qmd
 
 Further analysis and model code is available in:
 
-code\analysis-code\analysis-code.qmd
+code/analysis-code/analysis-code.qmd
 
 ## Statistical Analysis
 
@@ -228,11 +228,11 @@ knitr::include_graphics(here("results", "figures", "roc_curve.png"))
 
 Multiple machine learning models were evaluated using 5-fold stratified cross-validation, including logistic regression, decision tree, random forest, gradient boosting, and two baseline models (age-only and medication-only).
 
-As shown in @tb2-ml_model_comparison, model discrimination was generally modest across all approaches. Logistic regression achieved the highest performance (AUC = 0.622), followed closely by the random forest model (AUC = 0.611). The age-only baseline model demonstrated comparable predictive ability (AUC = 0.584), while the medication-only model performed similarly (AUC = 0.584). The decision tree model performed at chance level (AUC = 0.500), and gradient boosting underperformed relative to simpler models (AUC = 0.465).
+As shown in @tbl-ml_model_comparison, model discrimination was generally modest across all approaches. Logistic regression achieved the highest performance (AUC = 0.622), followed closely by the random forest model (AUC = 0.611). The age-only baseline model demonstrated comparable predictive ability (AUC = 0.584), while the medication-only model performed similarly (AUC = 0.584). The decision tree model performed at chance level (AUC = 0.500), and gradient boosting underperformed relative to simpler models (AUC = 0.465).
 
 ```{r}
-#| label: tb2-ml_model_comparison
-#| tb2-cap: "Cross-validated performance of predictive models for 30-day mortality using demographic and medication features. Metrics include AUC-ROC, average precision, and Brier score."
+#| label: tbl-ml_model_comparison
+#| tbl-cap: "Cross-validated performance of predictive models for 30-day mortality using demographic and medication features. Metrics include AUC-ROC, average precision, and Brier score."
 #| echo: true
 #| warning: false
 #| message: false
