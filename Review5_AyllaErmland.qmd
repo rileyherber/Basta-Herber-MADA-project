@@ -1,0 +1,122 @@
+---
+title: Project Review 5
+author: Aylla von Ermland
+date: 04/29/2026
+format: 
+  html:
+    toc: true
+    toc-depth: 3
+    number-sections: true
+---
+
+# Overview
+
+**Project:** "How Medications and Medication Regimens relate to Patient Mortality?"
+
+**Authors:** Rebecca Basta and Riley Herber
+
+**Project reviewer:** Aylla von Ermland
+
+# Instructions
+
+# Specific project content evaluation
+
+## Background, Context and Motivation
+
+### Feedback and Comments
+The project is well strcutured and has all the components for evaluation. The Manuscript.qmd file is rendering nicely into docx file. Some aspects of introduction and background that need to be improved include to add more references cited, as only 3 references were cited leaving a lot of spots without reference after information. The project have a well stated significance and why investigating this question. Authors should add in the abstract and introduction what is the MIMIC-IV dataset and where it came from. They explain later in the dataset description, but it is quite confusing in the beginning understanding the project without this information. Moreover, it would be interesting to explain in the introduction what is the term "unadjusted analysis" and how this differs from “adjusted.”
+
+### Summary assessment
+* strong contextualization and motivation
+
+## Question description
+### Feedback and Comments
+The research question is clearly defined as evaluating the association between medication classes, polypharmacy, and 30-day mortality. The hypotheses are implicitly stated through the modeling approach (single-predictor, multivariable, and machine learning models), but they could be made more explicit in the introduction. The relationship between the question and the data is appropriate, as the dataset contains both medication exposure variables and mortality outcomes. However, the distinction between association vs. causal effects is not clearly stated, which could lead to misinterpretation of results.
+
+### Summary assessment
+* question/hypotheses fully clear
+
+## Data description
+### Feedback and Comments
+The dataset is well described, but key context (synthetic nature and origin from MIMIC-IV) should appear earlier in the manuscript. Some conceptual questions not discussed includes how does using a synthetic dataset modeled after MIMIC-IV affect the validity of your findings compared to real patient data? What specific clinical patterns or correlations might be lost or distorted in the synthetic data? How might results differ if this analysis were repeated using real ICU data?
+The extremely low number of mortality events (n = 13) is a critical characteristic of the dataset and strongly impacts downstream analyses, but this could be emphasized earlier in the manuscript.
+
+### Summary assessment
+* source and overall structure of data well explained
+
+## Data wrangling and exploratory analysis
+
+### Feedback and Comments
+The exploratory analysis provides enough data and figures to have a clear view of the raw dataset. I really liked the single-predictor logistic regression models for 30-day mortality. The EAD code was not reproducible, some technical issues that worth improvement: When trying to run **mimic-processing.qmd**, I encountered an error when loading CSV files. Instead of **admissions <- read_csv("/../../data/raw-data/admissions_syn.csv", show_col_types = FALSE)** you should proper use the "here()" function and fix for **admissions <- read_csv(here("data", "raw-data", "admissions_syn.csv"), show_col_types = FALSE)**. The EAD code (and also the processing code) current use of ../../ points to the system root instead of the project directory, which prevents reproducibility. This issue appears throughout the code.
+
+### Summary assessment
+* some weaknesses in wrangling and exploratory component
+
+## Appropriateness of Analysis
+
+### Feedback and Comments
+The analysis used were appropriate. The use of logistic regression models is appropriate and well implemented.
+The inclusion of single-predictor models is a strong point. However, an open question for me is how did you conclude age is the main predictor if the p-value of single-prediction regression models for 30-day mortality is 0? How would you explain this?
+
+The use of multivariable logistic regression is appropriate for assessing adjusted associations between medication classes and mortality. Including age and sex as covariates is a reasonable first step to address confounding. The use of AUC-ROC as a performance metric is appropriate given the class imbalance . However, there are important limitations:
+The model is somewhat underpowered, with only 13 mortality events and multiple predictors. This makes coefficient estimates unstable and limits interpretability. Machine learning models (random forest, gradient boosting) did not improve performance, likely due to limited feature informativeness and small sample size. The lack of improvement over an age-only model suggests that the dataset does not contain strong predictive signal beyond basic demographics.
+
+### Summary assessment
+* strong and reasonable analysis
+
+## Presentation
+
+### Feedback and Comments
+The manuscript is well written, with a nice introduction to figures and clear explanations. No template text, the repository is nicely polished. The only issue I found in terms of organization is that not all README files are updated. Mainly the ones inside CODE and Results folders. Results are clearly presented with appropriate use of ROC curves and calibration plots. Figures effectively illustrate model performance and limitations. The inclusion of cross-validation results strengthens the analysis. The manuscript clearly explains that model performance is modest.
+
+### Summary assessment
+* results are very well presented
+
+## Discussion/Conclusions
+
+### Feedback and Comments
+The manuscript is well written and explanations are clear. The discussion appropriately interprets findings as associative rather than causal, emphasizing impact by patient severity. The discussion of model performance is strong and consistent with the results, particularly regarding limited predictive power (AUC ≈ 0.62), similar performance between simple and complex models and dominance of age as a predictor. Limitations are well acknowledged, including synthetic nature of the dataset and low number of mortality events. However, the discussion could be strengthened by proposing specific methods to address these limitations (e.g., causal inference approaches, richer datasets). 
+
+### Summary assessment
+* strong, complete and clear discussion
+
+## Further comments
+
+# Overall project content evaluation
+
+## Structure
+
+### Feedback and Comments
+The EAD and data processing code was not fully reproducible due to incorrect file paths. The use of ../../ prevents proper execution across systems. Fixing file paths using here() would resolve this issue. The analysis code is reproducible and nicely structured. 
+
+### Summary assessment
+* well structured
+
+## Documentation 
+
+### Feedback and Comments
+The exploratory analysis is strong and provides meaningful insights into the dataset. The manuscript provides clear explanations of modeling approaches and results. The workflow is understandable, particularly in the modeling and evaluation sections.
+
+### Summary assessment
+* fully and well documented
+
+## Reproducibility
+
+### Feedback and Comments
+As previously mentioned there are directory issues in the code that prevented EAD and processing code to be reproducible. In the other hand, the analysis code was fully reproducible. 
+
+### Summary assessment
+* small parts not reproducible or required manual intervention 
+
+## Thoroughness
+
+### Feedback and Comments
+The project seemed to be very well thought and planned. the study explores multiple analytical approaches, including descriptive analysis, Logistic regression (single and multivariable), machine learning models with cross-validation, touching essentially in a little of everything we learned in the class.
+
+### Summary assessment
+* strong level of thorougness
+
+
+
+
+
