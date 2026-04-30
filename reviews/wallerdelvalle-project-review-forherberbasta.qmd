@@ -1,7 +1,7 @@
 ---
 title: Project Review Template 
-author: YOUR NAME
-date: date-modified
+author: Anissa Waller Del Valle 
+date: April 30 2026
 format: 
   html:
     toc: true
@@ -11,26 +11,11 @@ format:
 
 # Overview
 
-Title of project:
+Title of project: How Medications and Medication Regimens relate to Patient Mortality 
 
-Name of project author(s):
+Name of project author(s): Rebecca Basta and Riley Herber 
 
-Name of project reviewer:
-
-
-# Instructions
-
-Write your comments and feedback below for each section/component of the project. The goal should be to help the author improve their project. Make comments as constructive and actionable as possible. You can provide both criticism and praise.
-
-For each component, pick one summary statement by deleting the ones that do not apply and keeping only the one that you think most closely summarizes a given component. 
-
-Make sure your final document compiles/renders into a readable, well-formatted html document.
-
-Delete any sections/text of this template that are not part of your final review document. (Including these instructions.)
-
-
-# Specific project content evaluation
-Evaluate the different parts of the project by filling in the sections below.
+Name of project reviewer: Anissa Waller Del Valle 
 
 
 ## Background, Context and Motivation
@@ -38,11 +23,13 @@ How well is the context of the project described? Is a comprehensive background,
 
 ### Feedback and Comments
 
-WRITE YOUR FEEDBACK HERE
+1. The context of this project is described well. There is a summary of previous work ("A nationwide cohort study published in Nature..."). It is clear why the project was undertaken. 
+
+2. I can see the references, although they are presented as both (LASTNAME et al., YEAR) and (NUMBER). I would present the references in only one way. 
+
+3. The aims of the project are clear. 
 
 ### Summary assessment (PICK ONE, DELETE THE OTHERS)
-* very poor contextualization and motivation
-* some contextualization and motivation
 * strong contextualization and motivation
 
 
@@ -52,12 +39,12 @@ How well and clear are the question(s)/hypotheses the project aims to address de
 
 ### Feedback and Comments
 
-WRITE YOUR FEEDBACK HERE
+1. The primary objective of the project is clearly stated. It is clear how the questions relate to the data. 
+
+2. The hypothesis is not explicitly stated. 
 
 ### Summary assessment
-* question/hypotheses unclear
 * question/hypotheses somewhat explained
-* question/hypotheses fully clear
 
 
 ## Data description
@@ -65,11 +52,9 @@ How well is the data overall described? Is the source provided? Is a codebook or
 
 ### Feedback and Comments
 
-WRITE YOUR FEEDBACK HERE
+1. The source is provided in **Data Aquisition**. It explicitly states what data were used in this project, and where the data can be located. It is clear what the data is. The data is described well. 
 
 ### Summary assessment
-* source and overall structure of data poorly explained
-* source and overall structure of data somewhat explained
 * source and overall structure of data well explained
 
 
@@ -78,11 +63,13 @@ How well is the data cleaned/processed and explored? Are all steps reasonable an
 
 ### Feedback and Comments
 
-WRITE YOUR FEEDBACK HERE
+1. Data is cleaned/processed and explored well. All steps were reasonable and appropiate for the data and analysis performed. Meaningful exploratory results are shown. 
+
+2. The relative file paths (../../data/...) are a _little_ fragile. Emphasis on little. I had to change my working directory around to run the scripts properly. I wonder if using **here()** would help? 
+
+3. I like the idea of classifying the medication! I am a bit worried about keyword matching, as there is a decent risk of misclassification. Is there an alternative method you could use to ensure that the medications are classified correctly? 
 
 ### Summary assessment
-* major weaknesses in wrangling and exploratory component
-* some weaknesses in wrangling and exploratory component
 * essentially no weaknesses in wrangling and exploratory component
 
 
@@ -92,23 +79,26 @@ Were the analysis methods appropriate for the data? Was the analysis done proper
 
 ### Feedback and Comments
 
-WRITE YOUR FEEDBACK HERE
+1. The goal of this project is to better understand how medication regiments relate to patient mortality. Only 0.1% of admissions (13 deaths in a 30-day period) resulted in death. This is an incredibly small sample pool. My recommendation would be to look further out (e.g., 90-day mortality) and repeat the analysis, or to **use an approach that is specifically designed to reduce bias in small samples and rare events**. This will help make the odds ratios more stable and tighten your 95% CIs. Incorporating some class weighting (or other related methods) would strengthen your claims. Otherwise, the model is underpowered and unable to accurately predict survival vs. death. 
+
+2. Exposure to medication is incredibly oversimplified (received vs. not received). This does not account for dosage or frequency, which are important factors to consider, leading to substantial bias. 
+
+3. Overall, the analysis pipeline is solid. The data being analyzed is the issue. 
 
 ### Summary assessment
-* wrong/inadequate analysis
 * defensible but not optimal analysis 
-* strong and reasonable analysis
+
 
 ## Presentation
 How well are results presented? Are tables and figures easy to read and understand? Are the main figures/tables publication level quality? 
 
 ### Feedback and Comments
 
-WRITE YOUR FEEDBACK HERE
+1. The results are presented well. Tables and figures are easy to read and understand. The main figures (**4.2 Full Analysis**) are publication quality. 
+
+2. I would be hesistant to say that Figure 4 displays a non-linear, inverted U-shape. If the x-axis spanned 0 - 100% instead of 0.00% - 0.12%,  this would be a very flat line. 
 
 ### Summary assessment
-* results are poorly presented, hard to understand, poor quality
-* results are presented ok, with room for improvement
 * results are very well presented
 
 
@@ -117,22 +107,10 @@ Are the study findings properly discussed? Are strengths and limitations acknowl
 
 ### Feedback and Comments
 
-WRITE YOUR FEEDBACK HERE
+1. Study findings are properly discussed. Strengths and limitations are acknowleged. Findings are interpreted properly, and the low event count (13 deaths) is acknowledged frequently. 
 
 ### Summary assessment
-* major parts of discussion missing or wrong 
-* minor parts wrong, missing or unclear
 * strong, complete and clear discussion
-
-
-## Further comments
-
-_Add any other comments regarding the different aspects of the project here. Write anything you think can help your classmate improve their project._
-
-
-
-# Overall project content evaluation
-Evaluate overall features of the project  by filling in the sections below.
 
 
 ## Structure
@@ -140,11 +118,9 @@ Is the project well structured? Are files in well labeled folders? Do files have
 
 ### Feedback and Comments
 
-WRITE YOUR FEEDBACK HERE
+1. The project is well structured and in well labled folders (although I am a bit confused at mimic? mimic-processing.qmd and mimic.eda?). There are no junk files. The readme.qmd files associated with each folder contained the appropiate information. I can get an idea of how things fit together. 
 
 ### Summary assessment
-* poor and confusing structure
-* mostly clear, but some confusing parts (e.g. useless files, things in the wrong folders)
 * well structured
 
 
@@ -153,11 +129,9 @@ How well is the project documented? Are you able to understand each step of the 
 
 ### Feedback and Comments
 
-WRITE YOUR FEEDBACK HERE
+1. Project is well documented and easy to understand. Enough infrmation was provided, in a combination of both code and as part of the Rmd files. 
 
 ### Summary assessment
-* poorly documented
-* decently documented with some gaps
 * fully and well documented
 
 
@@ -167,12 +141,9 @@ Are all results fully reproducible? Is documentation provided which clearly expl
 
 ### Feedback and Comments
 
-WRITE YOUR FEEDBACK HERE
-
+1. Results are fully reproducible. Documentation is provided. I was able to re-run the whole analysis. 
 
 ### Summary assessment
-* major parts not reproducible 
-* small parts not reproducible or required manual intervention 
 * fully reproducible without issues
 
 
@@ -181,19 +152,7 @@ How thorough was the overall study? Were alternatives (e.g. different ways of pr
 
 ### Feedback and Comments
 
-WRITE YOUR FEEDBACK HERE
+1. Alternatives were considered, explored, and discussed. The questions/hypothesis were fully addressed. The study was thorough -- the issue is really the data that were used. 
 
 ### Summary assessment
-* weak level of thoroughness
-* decent level of thoroughness
 * strong level of thorougness
-
-
-## Further comments
-
-_Add any other comments regarding the overall project here. Write anything you think can help your classmate improve their project._
-
-
-
-
-
