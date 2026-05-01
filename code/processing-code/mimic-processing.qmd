@@ -37,9 +37,9 @@ prescriptions.csv	Medication orders per hospital stay
 # Optional sampling for speed
 set.seed(123)
 
-admissions <- read_csv("../../data/raw-data/admissions_syn.csv", show_col_types = FALSE)
-prescriptions <- read_csv("../../data/raw-data/prescriptions_syn.csv", show_col_types = FALSE)
-patients <- read_csv("../../data/raw-data/patients_syn.csv", show_col_types = FALSE)
+admissions <- read_csv(here("data", "raw-data", "admissions_syn.csv"), show_col_types = FALSE)
+prescriptions <- read_csv(here("data", "raw-data", "prescriptions_syn.csv"), show_col_types = FALSE)
+patients <- read_csv(here("data", "raw-data", "patients_syn.csv"), show_col_types = FALSE)
 
 
 sampled_ids <- admissions |>

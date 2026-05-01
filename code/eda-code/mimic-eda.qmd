@@ -16,7 +16,10 @@ library(here)
 
 ```{r}
 #| fig-cap: "Distribution of 30-day mortality in the analytic cohort"
-analysis_df <- read_csv("../../data/processed-data/analysis_dataset.csv", show_col_types = FALSE)
+analysis_df <- read_csv(
+  here("data", "processed-data", "analysis_dataset.csv"),
+  show_col_types = FALSE
+)
 analysis_df |>
   mutate(Outcome = if_else(mortality_30day == 1, "Died (≤30 days)", "Survived")) |>
   count(Outcome) |>
